@@ -140,6 +140,26 @@ header {
   border-color: var(--red);
   color: var(--red);
 }
+.field select {
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  color: var(--cyan);
+  font-family: inherit;
+  font-size: 10px;
+  padding: 5px 8px;
+  outline: none;
+  width: 100%;
+  cursor: pointer;
+  transition: border-color 0.15s;
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%232a5a70'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  padding-right: 24px;
+}
+.field select:focus { border-color: var(--cyan); }
+.field select option { background: var(--bg3); color: var(--cyan); }
 
 /* Readout grid */
 .readout {
@@ -397,6 +417,10 @@ footer {
   <div class="header-tag">PATH VIEW</div>
   <div class="header-tag">QUAT ENGINE</div>
   <div class="header-tag">v0.1</div>
+  <a class="header-tag" href="https://github.com/pxl-pshr/pytti-motion-preview" target="_blank" rel="noopener" style="text-decoration:none; display:flex; align-items:center; gap:5px;">
+    <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+    GITHUB
+  </a>
   <div class="header-status">
     <div class="status-dot"></div>
     LIVE PREVIEW
@@ -406,6 +430,24 @@ footer {
 <!-- PANEL -->
 <div class="panel">
   <div class="panel-scroll">
+
+    <div class="section-label">Presets</div>
+    <div class="field">
+      <label>Motion Preset</label>
+      <select id="presetSelect" onchange="loadPreset(this.value)">
+        <option value="">— select preset —</option>
+        <option value="orbit">Gentle Orbit</option>
+        <option value="spin">Slow Y-Axis Spin</option>
+        <option value="dolly">Dolly Forward</option>
+        <option value="spiral">Spiral Descent</option>
+        <option value="fig8">Figure-8</option>
+        <option value="pendulum">Pendulum Swing</option>
+        <option value="corkscrew">Corkscrew</option>
+        <option value="zoomtilt">Zoom + Tilt Up</option>
+        <option value="barrelroll">Barrel Roll</option>
+        <option value="drift">Oscillating Drift</option>
+      </select>
+    </div>
 
     <div class="section-label">Transform Expressions</div>
 
@@ -563,6 +605,32 @@ footer {
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
+// ═══════════════════════════════════════════════════════════
+//  PRESETS
+// ═══════════════════════════════════════════════════════════
+const PRESETS = {
+  orbit:      { tx: '20 * cos(0.2 * t)',         ty: '10 * sin(0.2 * t)',         tz: '0',   rq: '[1, 0, 0, 0]' },
+  spin:       { tx: '0',                          ty: '0',                          tz: '0',   rq: '[cos(radians(1)), 0, sin(radians(1)), 0]' },
+  dolly:      { tx: '0',                          ty: '0',                          tz: '-3',  rq: '[1, 0, 0, 0]' },
+  spiral:     { tx: '5 * cos(0.1 * t)',           ty: '-0.5',                       tz: '5 * sin(0.1 * t)', rq: '[cos(radians(0.5)), 0, sin(radians(0.5)), 0]' },
+  fig8:       { tx: '15 * sin(0.15 * t)',         ty: '8 * sin(0.3 * t)',           tz: '0',   rq: '[1, 0, 0, 0]' },
+  pendulum:   { tx: '20 * sin(0.08 * t)',         ty: '0',                          tz: '0',   rq: '[cos(radians(sin(t*0.05)*2)), 0, 0, sin(radians(sin(t*0.05)*2))]' },
+  corkscrew:  { tx: '0',                          ty: '0',                          tz: '-2',  rq: '[cos(radians(2)), sin(radians(1)), 0, 0]' },
+  zoomtilt:   { tx: '0',                          ty: '-1',                         tz: '-4',  rq: '[cos(radians(0.5)), sin(radians(0.3)), 0, 0]' },
+  barrelroll: { tx: '0',                          ty: '0',                          tz: '-2',  rq: '[cos(radians(0.5)), 0, 0, sin(radians(3))]' },
+  drift:      { tx: '10 * sin(0.05 * t)',         ty: '5 * cos(0.1 * t)',           tz: '-1',  rq: '[cos(radians(0.3)), 0, sin(radians(sin(t*0.03))), 0]' },
+};
+
+function loadPreset(key) {
+  if (!key || !PRESETS[key]) return;
+  const p = PRESETS[key];
+  document.getElementById('tx').value = p.tx;
+  document.getElementById('ty').value = p.ty;
+  document.getElementById('tz').value = p.tz;
+  document.getElementById('rq').value = p.rq;
+  recompute();
+}
+
 // ═══════════════════════════════════════════════════════════
 //  EXPRESSION EVALUATOR
 // ═══════════════════════════════════════════════════════════
