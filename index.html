@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PYTTI // MOTION PREVIEW</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg:     #030c12;
+  --bg2:    #060f18;
+  --bg3:    #020608;
+  --cyan:   #00e5ff;
+  --orange: #ff6d00;
+  --green:  #39ff14;
+  --red:    #ff3a3a;
+  --dim:    #1a2a3a;
+  --border: #0a2535;
+  --border2: #0d3048;
+  --text:   #5fa8be;
+  --text2:  #2a5a70;
+}
+
+html, body {
+  min-height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Share Tech Mono', 'Courier New', monospace;
+}
+
+/* ── HEADER ── */
+header {
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  height: 42px;
+  gap: 0;
+}
+.logo {
+  font-size: 12px;
+  letter-spacing: 6px;
+  color: var(--cyan);
+  text-transform: uppercase;
+}
+.logo span { color: var(--orange); }
+.header-tag {
+  font-size: 8px;
+  letter-spacing: 3px;
+  color: var(--text2);
+  border: 1px solid var(--border2);
+  padding: 2px 8px;
+  margin-left: 8px;
+}
+.header-status {
+  margin-left: auto;
+  font-size: 8px;
+  letter-spacing: 2px;
+  color: var(--text2);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.status-dot {
+  width: 5px; height: 5px;
+  background: var(--green);
+  border-radius: 50%;
+  animation: blink 1.5s ease-in-out infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+/* ── HERO ── */
+.hero {
+  max-width: 900px;
+  margin: 80px auto 60px;
+  padding: 0 24px;
+}
+
+.hero-eyebrow {
+  font-size: 8px;
+  letter-spacing: 5px;
+  color: var(--orange);
+  text-transform: uppercase;
+  margin-bottom: 20px;
+}
+
+.hero-title {
+  font-size: clamp(24px, 4vw, 42px);
+  letter-spacing: 8px;
+  color: var(--cyan);
+  text-transform: uppercase;
+  line-height: 1.2;
+  margin-bottom: 8px;
+}
+.hero-title span { color: var(--orange); }
+
+.hero-sub {
+  font-size: 10px;
+  letter-spacing: 3px;
+  color: var(--text2);
+  text-transform: uppercase;
+  margin-bottom: 32px;
+}
+
+.hero-desc {
+  font-size: 11px;
+  line-height: 1.9;
+  color: var(--text);
+  max-width: 620px;
+  margin-bottom: 40px;
+  letter-spacing: 1px;
+}
+
+.btn-launch {
+  display: inline-block;
+  background: none;
+  border: 1px solid var(--cyan);
+  color: var(--cyan);
+  font-family: inherit;
+  font-size: 10px;
+  padding: 12px 36px;
+  letter-spacing: 5px;
+  text-transform: uppercase;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.15s;
+  margin-right: 12px;
+}
+.btn-launch:hover {
+  background: var(--cyan);
+  color: #000;
+}
+.btn-secondary {
+  display: inline-block;
+  background: none;
+  border: 1px solid var(--border2);
+  color: var(--text2);
+  font-family: inherit;
+  font-size: 10px;
+  padding: 12px 28px;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.btn-secondary:hover {
+  border-color: var(--orange);
+  color: var(--orange);
+}
+
+/* ── DIVIDER ── */
+.divider {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 24px;
+  height: 1px;
+  background: var(--border);
+}
+
+/* ── FEATURES ── */
+.features {
+  max-width: 900px;
+  margin: 60px auto;
+  padding: 0 24px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+}
+
+.feature {
+  background: var(--bg2);
+  padding: 28px 24px;
+}
+
+.feature-tag {
+  font-size: 7px;
+  letter-spacing: 4px;
+  color: var(--orange);
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+.feature-title {
+  font-size: 11px;
+  letter-spacing: 3px;
+  color: var(--cyan);
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+.feature-body {
+  font-size: 9px;
+  line-height: 1.8;
+  color: var(--text2);
+  letter-spacing: 1px;
+}
+
+/* ── PREVIEW BLOCK ── */
+.preview-block {
+  max-width: 900px;
+  margin: 0 auto 60px;
+  padding: 0 24px;
+}
+
+.section-label {
+  font-size: 7px;
+  letter-spacing: 4px;
+  color: var(--orange);
+  text-transform: uppercase;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 20px;
+}
+
+.code-block {
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  padding: 20px 24px;
+  font-size: 10px;
+  line-height: 2;
+  color: var(--green);
+  letter-spacing: 1px;
+  overflow-x: auto;
+  margin-bottom: 8px;
+}
+
+.code-block .comment { color: var(--text2); }
+.code-block .key { color: var(--cyan); }
+.code-block .val { color: var(--orange); }
+
+.code-note {
+  font-size: 8px;
+  letter-spacing: 2px;
+  color: var(--text2);
+}
+
+/* ── HOW IT WORKS ── */
+.steps {
+  max-width: 900px;
+  margin: 0 auto 60px;
+  padding: 0 24px;
+}
+
+.step-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.step {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--border);
+}
+.step:first-child { border-top: 1px solid var(--border); }
+
+.step-num {
+  font-size: 9px;
+  color: var(--text2);
+  letter-spacing: 2px;
+  min-width: 32px;
+  padding-top: 2px;
+}
+
+.step-content {}
+.step-title {
+  font-size: 10px;
+  letter-spacing: 3px;
+  color: var(--cyan);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.step-body {
+  font-size: 9px;
+  line-height: 1.8;
+  color: var(--text2);
+  letter-spacing: 1px;
+}
+
+/* ── CTA ── */
+.cta {
+  max-width: 900px;
+  margin: 0 auto 80px;
+  padding: 0 24px;
+}
+
+.cta-box {
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  padding: 40px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.cta-text {}
+.cta-eyebrow {
+  font-size: 7px;
+  letter-spacing: 4px;
+  color: var(--orange);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.cta-title {
+  font-size: 14px;
+  letter-spacing: 5px;
+  color: var(--cyan);
+  text-transform: uppercase;
+}
+
+/* ── FOOTER ── */
+footer {
+  background: var(--bg2);
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  height: 42px;
+  gap: 16px;
+}
+.footer-label {
+  font-size: 8px;
+  letter-spacing: 2px;
+  color: var(--text2);
+}
+.footer-sep {
+  width: 1px; height: 16px;
+  background: var(--border);
+}
+
+/* Scanlines overlay */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent 3px,
+    rgba(0,0,0,0.07) 3px,
+    rgba(0,0,0,0.07) 4px
+  );
+  pointer-events: none;
+  z-index: 100;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">PYTTI <span>//</span> MOTION</div>
+  <div class="header-tag">PREVIEW TOOL</div>
+  <div class="header-tag">v0.1</div>
+  <div class="header-status">
+    <div class="status-dot"></div>
+    STANDALONE &bull; NO SERVER REQUIRED
+  </div>
+</header>
+
+<main>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-eyebrow">// open source utility</div>
+    <div class="hero-title">PYTTI <span>//</span> MOTION<br>PREVIEW</div>
+    <div class="hero-sub">Real-time camera path visualizer for AI video</div>
+    <p class="hero-desc">
+      A browser-based tool for previewing PYTTI camera motion expressions
+      before committing to a full render. Paste your translate/rotate expressions,
+      scrub the timeline, and see the 3D path and live camera view update instantly.
+      No installation. No server. Open the file and go.
+    </p>
+    <a class="btn-launch" href="pytti-motion-preview.html">Launch Tool</a>
+    <a class="btn-secondary" href="https://github.com/pytti-tools/pytti-core" target="_blank" rel="noopener">PyTTI Docs</a>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- FEATURES -->
+  <section class="features">
+    <div class="feature">
+      <div class="feature-tag">01</div>
+      <div class="feature-title">Expression Engine</div>
+      <div class="feature-body">
+        Type any math expression using t as the frame variable.
+        sin, cos, radians, degrees — all the PYTTI-compatible
+        functions are available.
+      </div>
+    </div>
+    <div class="feature">
+      <div class="feature-tag">02</div>
+      <div class="feature-title">3D Path View</div>
+      <div class="feature-body">
+        Watch the accumulated camera trajectory render live in
+        a 3D observer scene. Gradient line from start to end,
+        with tick marks and frustum at the current frame.
+      </div>
+    </div>
+    <div class="feature">
+      <div class="feature-tag">03</div>
+      <div class="feature-title">Camera View</div>
+      <div class="feature-body">
+        Switch to first-person camera view to see exactly what
+        the AI diffusion model's virtual camera sees at each
+        frame of the animation.
+      </div>
+    </div>
+    <div class="feature">
+      <div class="feature-tag">04</div>
+      <div class="feature-title">Quaternion Engine</div>
+      <div class="feature-body">
+        Rotation uses PYTTI's native [w, x, y, z] quaternion
+        format. Accumulated quaternion and Euler readouts update
+        per-frame so you can debug rotation drift.
+      </div>
+    </div>
+    <div class="feature">
+      <div class="feature-tag">05</div>
+      <div class="feature-title">Path Analysis</div>
+      <div class="feature-body">
+        Automatic loop detection, total path distance, and
+        max radius from origin — quickly validate whether
+        your motion will return to start.
+      </div>
+    </div>
+    <div class="feature">
+      <div class="feature-tag">06</div>
+      <div class="feature-title">Zero Dependencies</div>
+      <div class="feature-body">
+        Single HTML file. Three.js loaded from CDN.
+        Open directly from disk in any modern browser.
+        No build step, no npm, no server.
+      </div>
+    </div>
+  </section>
+
+  <!-- EXAMPLE EXPRESSIONS -->
+  <section class="preview-block">
+    <div class="section-label">Example Expressions</div>
+    <div class="code-block">
+<span class="comment"># Gentle orbit</span>
+<span class="key">translate_x:</span>  <span class="val">20 * cos(0.2 * t)</span>
+<span class="key">translate_y:</span>  <span class="val">10 * sin(0.2 * t)</span>
+<span class="key">translate_z:</span>  <span class="val">0</span>
+<span class="key">rotate_3d:</span>   <span class="val">[cos(radians(0.5)), 0, sin(radians(0.5)), 0]</span>
+
+<span class="comment"># Slow zoom with yaw</span>
+<span class="key">translate_x:</span>  <span class="val">0</span>
+<span class="key">translate_y:</span>  <span class="val">0</span>
+<span class="key">translate_z:</span>  <span class="val">-3</span>
+<span class="key">rotate_3d:</span>   <span class="val">[cos(radians(1)), 0, sin(radians(1)), 0]</span>
+
+<span class="comment"># Spiral descent</span>
+<span class="key">translate_x:</span>  <span class="val">sin(0.1 * t) * 5</span>
+<span class="key">translate_y:</span>  <span class="val">-1</span>
+<span class="key">translate_z:</span>  <span class="val">cos(0.1 * t) * 5</span>
+<span class="key">rotate_3d:</span>   <span class="val">[1, 0, 0, 0]</span>
+    </div>
+    <div class="code-note">// paste expressions directly from your pytti config</div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section class="steps">
+    <div class="section-label">How To Use</div>
+    <div class="step-list">
+      <div class="step">
+        <div class="step-num">01</div>
+        <div class="step-content">
+          <div class="step-title">Open the tool</div>
+          <div class="step-body">Click "Launch Tool" above, or open <span style="color:var(--green)">pytti-motion-preview.html</span> directly in your browser from disk.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">02</div>
+        <div class="step-content">
+          <div class="step-title">Paste your expressions</div>
+          <div class="step-body">Enter translate_x/y/z and rotate_3d expressions in the left panel. The path recomputes automatically as you type (400ms debounce).</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">03</div>
+        <div class="step-content">
+          <div class="step-title">Scrub or play</div>
+          <div class="step-body">Use the timeline slider or hit Play to animate. Adjust frame count and FPS to match your intended render settings.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">04</div>
+        <div class="step-content">
+          <div class="step-title">Switch views</div>
+          <div class="step-body">Toggle between PATH (3D observer) and CAM (first-person) to validate both the trajectory shape and the frame-by-frame camera perspective.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">05</div>
+        <div class="step-content">
+          <div class="step-title">Confirm and render</div>
+          <div class="step-body">When the path looks right, copy the expressions back into your pytti config. What you see here is what PyTTI will compute.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta">
+    <div class="cta-box">
+      <div class="cta-text">
+        <div class="cta-eyebrow">// ready to preview</div>
+        <div class="cta-title">Open the Tool</div>
+      </div>
+      <a class="btn-launch" href="pytti-motion-preview.html">Launch &rarr;</a>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="footer-label">PYTTI MOTION PREVIEW</div>
+  <div class="footer-sep"></div>
+  <div class="footer-label">v0.1</div>
+  <div class="footer-sep"></div>
+  <div class="footer-label">SINGLE-FILE &bull; MIT LICENSE</div>
+</footer>
+
+</body>
+</html>
