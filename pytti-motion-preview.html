@@ -407,6 +407,73 @@ footer {
   text-align: center;
 }
 .num-field:focus { border-color: var(--cyan); }
+
+/* ── MOBILE ── */
+@media (max-width: 700px) {
+  html, body { height: auto; overflow: auto; }
+
+  body {
+    grid-template-rows: auto auto auto 1fr;
+    grid-template-columns: 1fr;
+    height: auto;
+    min-height: 100vh;
+  }
+
+  header {
+    grid-column: 1;
+    flex-wrap: wrap;
+    height: auto;
+    padding: 8px 12px;
+    gap: 4px;
+  }
+  .logo { font-size: 12px; letter-spacing: 3px; margin-right: 8px; }
+  .header-tag { font-size: 9px; padding: 2px 6px; margin-right: 4px; }
+  .header-tag[style*="display:flex"] { display: none !important; } /* hide github tag to save space */
+  .header-status { font-size: 9px; }
+
+  .panel {
+    grid-column: 1;
+    grid-row: 4;
+    border-right: none;
+    border-top: 1px solid var(--border);
+    max-height: none;
+    overflow: visible;
+  }
+  .panel-scroll {
+    overflow-y: visible;
+    max-height: none;
+    padding: 12px;
+  }
+
+  .viewport {
+    grid-column: 1;
+    grid-row: 2;
+    height: 52vw;
+    min-height: 240px;
+    max-height: 360px;
+  }
+
+  footer {
+    grid-column: 1;
+    grid-row: 3;
+    flex-wrap: wrap;
+    height: auto;
+    padding: 8px 12px;
+    gap: 8px;
+  }
+  .timeline-wrap { width: 100%; order: -1; }
+  .footer-sep { display: none; }
+  .footer-label { font-size: 9px; }
+  .play-btn { font-size: 10px; padding: 5px 12px; }
+  .loop-btn { font-size: 10px; padding: 5px 8px; }
+  .frame-counter { font-size: 10px; min-width: 70px; }
+  .num-field { width: 44px; font-size: 10px; }
+
+  .hud-tl, .hud-tr { font-size: 8px; padding: 6px 8px; }
+  .hud-bl, .hud-br { display: none; }
+  .view-toggle { top: 8px; right: 8px; }
+  .vbtn { font-size: 9px; padding: 4px 8px; }
+}
 </style>
 </head>
 <body>

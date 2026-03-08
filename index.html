@@ -339,6 +339,59 @@ footer {
   background: var(--border);
 }
 
+/* ── MOBILE ── */
+@media (max-width: 700px) {
+  header {
+    padding: 0 12px;
+    gap: 0;
+    flex-wrap: wrap;
+    height: auto;
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+  .logo { font-size: 12px; letter-spacing: 3px; }
+  .header-tag { font-size: 9px; padding: 2px 6px; margin-left: 4px; }
+  .header-status { font-size: 9px; margin-left: auto; }
+
+  .hero {
+    margin: 40px auto 36px;
+    padding: 0 16px;
+  }
+  .hero-eyebrow { font-size: 9px; letter-spacing: 3px; }
+  .hero-title { letter-spacing: 4px; }
+  .hero-sub { font-size: 11px; letter-spacing: 2px; }
+  .hero-desc { font-size: 12px; }
+  .btn-launch { font-size: 11px; padding: 10px 20px; letter-spacing: 3px; }
+
+  .features {
+    margin: 36px auto;
+    padding: 0 16px;
+    grid-template-columns: 1fr;
+  }
+  .feature-title { font-size: 12px; letter-spacing: 2px; }
+  .feature-body { font-size: 11px; }
+
+  .preview-block,
+  .steps,
+  .cta {
+    padding: 0 16px;
+  }
+  .section-label { font-size: 9px; letter-spacing: 3px; }
+  .code-block { font-size: 11px; padding: 14px 14px; overflow-x: auto; }
+  .code-note { font-size: 10px; }
+
+  .step { gap: 12px; padding: 14px 0; }
+  .step-num { font-size: 10px; min-width: 24px; }
+  .step-title { font-size: 11px; letter-spacing: 2px; }
+  .step-body { font-size: 11px; }
+
+  .cta-box { padding: 24px 20px; flex-direction: column; align-items: flex-start; gap: 16px; }
+  .cta-title { font-size: 14px; letter-spacing: 3px; }
+
+  footer { padding: 0 16px; gap: 10px; }
+  .footer-label { font-size: 9px; }
+}
+
 /* Scanlines overlay */
 body::before {
   content: '';
