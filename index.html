@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PYTTI // MOTION PREVIEW</title>
+<meta name="description" content="Preview the 3D camera path PyTTI will produce from translate_x, translate_y, translate_z_3d and rotate_3d expressions, in the browser.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
@@ -228,6 +229,7 @@ header {
   color: var(--green);
   letter-spacing: 1px;
   overflow-x: auto;
+  white-space: pre;
   margin-bottom: 8px;
 }
 
@@ -414,7 +416,7 @@ body::before {
 <header>
   <div class="logo">PYTTI <span>//</span> MOTION</div>
   <div class="header-tag">PREVIEW TOOL</div>
-  <div class="header-tag">v0.1</div>
+  <div class="header-tag">v0.2</div>
   <div class="header-status">
     <div class="status-dot"></div>
     STANDALONE &bull; NO SERVER REQUIRED
@@ -430,9 +432,9 @@ body::before {
     <div class="hero-sub">Real-time camera path visualizer for AI video</div>
     <p class="hero-desc">
       A browser-based tool for previewing PYTTI camera motion expressions
-      before committing to a full render. Paste your translate/rotate expressions,
-      scrub the timeline, and see the 3D path and live camera view update instantly.
-      No installation. No server. Open the file and go.
+      before committing to a full render. Paste your translate/rotate expressions
+      or a whole pytti preset, scrub the timeline, and see the 3D path and live
+      camera view update instantly. No installation. No server. Open the file and go.
     </p>
     <a class="btn-launch" href="pytti-motion-preview.html">Launch Tool</a>
   </section>
@@ -445,9 +447,10 @@ body::before {
       <div class="feature-tag">01</div>
       <div class="feature-title">Expression Engine</div>
       <div class="feature-body">
-        Type any math expression using t as the frame variable.
-        sin, cos, radians, degrees — all the PYTTI-compatible
-        functions are available.
+        Expressions are read the way PyTTI reads them: Python,
+        with t in seconds, pi, **, //, x if c else y and all of
+        the math module. Mistakes are flagged with the frame
+        PyTTI would fail on.
       </div>
     </div>
     <div class="feature">
@@ -473,8 +476,9 @@ body::before {
       <div class="feature-title">Quaternion Engine</div>
       <div class="feature-body">
         Rotation uses PYTTI's native [w, x, y, z] quaternion
-        format. Accumulated quaternion and Euler readouts update
-        per-frame so you can debug rotation drift.
+        format, with PyTTI's own axis directions. Pitch, yaw and
+        roll readouts update per frame, and a warning flags
+        quaternions PyTTI won't normalize.
       </div>
     </div>
     <div class="feature">
@@ -488,11 +492,11 @@ body::before {
     </div>
     <div class="feature">
       <div class="feature-tag">06</div>
-      <div class="feature-title">Zero Dependencies</div>
+      <div class="feature-title">PyTTI Config In / Out</div>
       <div class="feature-body">
-        Single HTML file. Three.js loaded from CDN.
-        Open directly from disk in any modern browser.
-        No build step, no npm, no server.
+        Copy or save the motion as a pytti preset, or paste
+        or drop one to load its expressions, FPS and frame
+        count. A single HTML file: no build, no npm, no server.
       </div>
     </div>
   </section>
@@ -500,26 +504,20 @@ body::before {
   <!-- EXAMPLE EXPRESSIONS -->
   <section class="preview-block">
     <div class="section-label">Example Expressions</div>
-    <div class="code-block">
-<span class="comment"># Gentle orbit</span>
-<span class="key">translate_x:</span>  <span class="val">20 * cos(0.2 * t)</span>
-<span class="key">translate_y:</span>  <span class="val">10 * sin(0.2 * t)</span>
-<span class="key">translate_z:</span>  <span class="val">0</span>
-<span class="key">rotate_3d:</span>   <span class="val">[cos(radians(0.5)), 0, sin(radians(0.5)), 0]</span>
+    <div class="code-block"><span class="comment"># PyTTI's default: circle a point ~1200 px ahead, pushing in every 10 s</span>
+<span class="key">translate_x:</span>     <span class="val">'-1700*sin(radians(1.5))'</span>
+<span class="key">translate_y:</span>     <span class="val">'0'</span>
+<span class="key">translate_z_3d:</span>  <span class="val">'(50+10*t)*sin(t/10*pi)**2'</span>
+<span class="key">rotate_3d:</span>       <span class="val">'[cos(radians(1.5)), 0, -sin(radians(1.5))/sqrt(2), sin(radians(1.5))/sqrt(2)]'</span>
 
-<span class="comment"># Slow zoom with yaw</span>
-<span class="key">translate_x:</span>  <span class="val">0</span>
-<span class="key">translate_y:</span>  <span class="val">0</span>
-<span class="key">translate_z:</span>  <span class="val">-3</span>
-<span class="key">rotate_3d:</span>   <span class="val">[cos(radians(1)), 0, sin(radians(1)), 0]</span>
+<span class="comment"># Dolly in while turning right 1° per frame</span>
+<span class="key">translate_z_3d:</span>  <span class="val">'20'</span>
+<span class="key">rotate_3d:</span>       <span class="val">'[cos(radians(0.5)), 0, sin(radians(0.5)), 0]'</span>
 
-<span class="comment"># Spiral descent</span>
-<span class="key">translate_x:</span>  <span class="val">sin(0.1 * t) * 5</span>
-<span class="key">translate_y:</span>  <span class="val">-1</span>
-<span class="key">translate_z:</span>  <span class="val">cos(0.1 * t) * 5</span>
-<span class="key">rotate_3d:</span>   <span class="val">[1, 0, 0, 0]</span>
-    </div>
-    <div class="code-note">// paste expressions directly from your pytti config</div>
+<span class="comment"># Push in and pull out every 4 seconds</span>
+<span class="key">translate_z_3d:</span>  <span class="val">'40*sin(2*pi*t/4)'</span>
+<span class="key">rotate_3d:</span>       <span class="val">'[1, 0, 0, 0]'</span></div>
+    <div class="code-note">// paste expressions or a whole preset straight from your pytti config</div>
   </section>
 
   <!-- HOW IT WORKS -->
@@ -537,14 +535,14 @@ body::before {
         <div class="step-num">02</div>
         <div class="step-content">
           <div class="step-title">Paste your expressions</div>
-          <div class="step-body">Enter translate_x/y/z and rotate_3d expressions in the left panel. The path recomputes automatically as you type (400ms debounce).</div>
+          <div class="step-body">Enter translate_x, translate_y, translate_z_3d and rotate_3d in the left panel, or paste or drop a pytti preset to load them. The path recomputes as you type (400ms debounce).</div>
         </div>
       </div>
       <div class="step">
         <div class="step-num">03</div>
         <div class="step-content">
           <div class="step-title">Scrub or play</div>
-          <div class="step-body">Use the timeline slider or hit Play to animate. Adjust frame count and FPS to match your intended render settings.</div>
+          <div class="step-body">Use the timeline slider or hit Play to animate. Set FPS to your config's frames_per_second: t is in seconds, so it changes the path.</div>
         </div>
       </div>
       <div class="step">
@@ -558,7 +556,7 @@ body::before {
         <div class="step-num">05</div>
         <div class="step-content">
           <div class="step-title">Confirm and render</div>
-          <div class="step-body">When the path looks right, copy the expressions back into your pytti config. What you see here is what PyTTI will compute.</div>
+          <div class="step-body">When the path looks right, Copy YAML or save a .yaml preset for pytti. The path follows PyTTI's own transform math; render with lock_camera: false, since the default lock cancels x/y moves and turns.</div>
         </div>
       </div>
     </div>
@@ -580,7 +578,7 @@ body::before {
 <footer>
   <div class="footer-label">PYTTI MOTION PREVIEW</div>
   <div class="footer-sep"></div>
-  <div class="footer-label">v0.1</div>
+  <div class="footer-label">v0.2</div>
   <div class="footer-sep"></div>
   <div class="footer-label">SINGLE-FILE &bull; MIT LICENSE</div>
 </footer>

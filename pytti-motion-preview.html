@@ -4,10 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PYTTI // MOTION PREVIEW</title>
+<meta name="description" content="Preview the 3D camera path PyTTI will produce from translate_x, translate_y, translate_z_3d and rotate_3d expressions.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
+[hidden] { display: none !important; }
 
 :root {
   --bg:     #030c12;
@@ -65,6 +67,12 @@ header {
   padding: 2px 8px;
   margin-right: 8px;
 }
+.header-gh {
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
 .header-status {
   margin-left: auto;
   font-size: 11px;
@@ -119,6 +127,7 @@ header {
   color: var(--cyan);
   text-transform: uppercase;
 }
+.field label.case { text-transform: none; }
 .field input, .field textarea {
   background: var(--bg3);
   border: 1px solid var(--border2);
@@ -161,6 +170,27 @@ header {
 .field select:focus { border-color: var(--cyan); }
 .field select option { background: var(--bg3); color: var(--cyan); }
 
+.field-row { display: flex; gap: 8px; }
+.field-row .field { flex: 1; min-width: 0; }
+
+.field-msg {
+  font-size: 10px;
+  letter-spacing: 1px;
+  line-height: 1.5;
+  color: var(--red);
+}
+.field-msg:empty { display: none; }
+.field-msg.warn { color: var(--orange); }
+.field-msg.ok { color: var(--green); }
+
+.hint {
+  font-size: 10px;
+  letter-spacing: 1px;
+  line-height: 1.6;
+  color: var(--text2);
+}
+.hint code { font-family: inherit; color: var(--text); }
+
 /* Readout grid */
 .readout {
   background: var(--bg3);
@@ -168,7 +198,7 @@ header {
   padding: 8px 10px;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0;
+  column-gap: 14px;
 }
 .r-row {
   display: flex;
@@ -178,6 +208,13 @@ header {
   border-bottom: 1px solid #070f16;
 }
 .r-row:last-child { border-bottom: none; }
+.r-head {
+  grid-column: 1 / -1;
+  font-size: 10px;
+  color: var(--text2);
+  letter-spacing: 2px;
+  padding-bottom: 4px;
+}
 .r-key { font-size: 11px; letter-spacing: 2px; color: var(--text2); }
 .r-val { font-size: 12px; color: var(--green); font-variant-numeric: tabular-nums; }
 .r-val.accent { color: var(--cyan); }
@@ -203,6 +240,23 @@ header {
 }
 .btn-recompute:hover { border-color: var(--orange); color: var(--orange); }
 
+.btn-row { display: flex; gap: 4px; }
+.btn-small {
+  flex: 1;
+  background: none;
+  border: 1px solid var(--border2);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 10px;
+  padding: 6px 4px;
+  cursor: pointer;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+.btn-small:hover, .btn-small.active { border-color: var(--cyan); color: var(--cyan); }
+
 /* ── VIEWPORT ── */
 .viewport {
   position: relative;
@@ -213,7 +267,10 @@ header {
   display: block;
   width: 100%;
   height: 100%;
+  touch-action: pan-y;
 }
+#canvas3d.orbit { cursor: grab; }
+#canvas3d.orbit:active { cursor: grabbing; }
 
 /* CRT scanlines */
 .scanlines {
@@ -277,7 +334,7 @@ header {
   padding: 10px 12px;
 }
 .hud-tl { top: 0; left: 0; }
-.hud-tr { top: 0; right: 0; }
+.hud-tr { top: 36px; right: 0; text-align: right; }   /* below the view toggle */
 .hud-bl { bottom: 0; left: 0; }
 .hud-br { bottom: 0; right: 0; text-align: right; }
 
@@ -309,6 +366,22 @@ header {
   left: -15px; top: -0.5px;
   height: 1px; width: 30px;
   background: var(--cyan);
+}
+
+/* Drop target while a file is dragged over the page */
+.drop-hint {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(3,12,18,0.85);
+  border: 2px dashed var(--cyan);
+  color: var(--cyan);
+  font-size: 14px;
+  letter-spacing: 5px;
+  pointer-events: none;
 }
 
 /* ── FOOTER ── */
@@ -395,18 +468,6 @@ footer {
   background: var(--border);
 }
 .footer-label { font-size: 10px; letter-spacing: 2px; color: var(--text2); }
-.num-field {
-  background: var(--bg3);
-  border: 1px solid var(--border2);
-  color: var(--green);
-  font-family: inherit;
-  font-size: 12px;
-  padding: 4px 6px;
-  width: 52px;
-  outline: none;
-  text-align: center;
-}
-.num-field:focus { border-color: var(--cyan); }
 
 /* ── MOBILE ── */
 @media (max-width: 700px) {
@@ -428,7 +489,7 @@ footer {
   }
   .logo { font-size: 12px; letter-spacing: 3px; margin-right: 8px; }
   .header-tag { font-size: 9px; padding: 2px 6px; margin-right: 4px; }
-  .header-tag[style*="display:flex"] { display: none !important; } /* hide github tag to save space */
+  .header-gh { display: none; } /* save space */
   .header-status { font-size: 9px; }
 
   .panel {
@@ -462,12 +523,10 @@ footer {
     gap: 8px;
   }
   .timeline-wrap { width: 100%; order: -1; }
-  .footer-sep { display: none; }
-  .footer-label { font-size: 9px; }
+  .footer-sep, .footer-label { display: none; }
   .play-btn { font-size: 10px; padding: 5px 12px; }
   .loop-btn { font-size: 10px; padding: 5px 8px; }
   .frame-counter { font-size: 10px; min-width: 70px; }
-  .num-field { width: 44px; font-size: 10px; }
 
   .hud-tl, .hud-tr { font-size: 8px; padding: 6px 8px; }
   .hud-bl, .hud-br { display: none; }
@@ -483,8 +542,8 @@ footer {
   <div class="logo">PYTTI <span>//</span> MOTION</div>
   <div class="header-tag">PATH VIEW</div>
   <div class="header-tag">QUAT ENGINE</div>
-  <div class="header-tag">v0.1</div>
-  <a class="header-tag" href="https://github.com/pxl-pshr/pytti-motion-preview" target="_blank" rel="noopener" style="text-decoration:none; display:flex; align-items:center; gap:5px;">
+  <div class="header-tag">v0.2</div>
+  <a class="header-tag header-gh" href="https://github.com/pxl-pshr/pytti-motion-preview" target="_blank" rel="noopener">
     <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
     GITHUB
   </a>
@@ -500,48 +559,92 @@ footer {
 
     <div class="section-label">Presets</div>
     <div class="field">
-      <label>Motion Preset</label>
+      <label for="presetSelect">Motion Preset</label>
       <select id="presetSelect" onchange="loadPreset(this.value)">
-        <option value="">— select preset —</option>
-        <option value="orbit">Gentle Orbit</option>
-        <option value="spin">Slow Y-Axis Spin</option>
-        <option value="dolly">Dolly Forward</option>
-        <option value="spiral">Spiral Descent</option>
-        <option value="fig8">Figure-8</option>
-        <option value="pendulum">Pendulum Swing</option>
-        <option value="corkscrew">Corkscrew</option>
-        <option value="zoomtilt">Zoom + Tilt Up</option>
-        <option value="barrelroll">Barrel Roll</option>
-        <option value="drift">Oscillating Drift</option>
+        <option value="">— custom —</option>
+        <option value="pytti" selected>PyTTI Default (3D)</option>
+        <option value="orbit">Orbit (loops at 120 frames)</option>
+        <option value="pan">Pan Right</option>
+        <option value="dolly">Dolly In</option>
+        <option value="pushpull">Push-Pull</option>
+        <option value="tunnel">Tunnel Roll</option>
+        <option value="fig8">Figure-8 Drift</option>
+        <option value="crane">Crane Up + Tilt Down</option>
+        <option value="pendulum">Pendulum Roll</option>
+        <option value="drift">Wandering Drift</option>
       </select>
     </div>
 
+    <div class="section-label">PyTTI Config</div>
+    <div class="btn-row">
+      <button class="btn-small" onclick="copyYaml()" title="Copy these settings as a pytti preset">⧉ Copy YAML</button>
+      <button class="btn-small" onclick="downloadYaml()" title="Save a preset file for pytti's app/config/conf/">↓ .yaml</button>
+      <button class="btn-small" id="importToggle" onclick="toggleImport()" title="Load the motion settings of a pytti preset or config">⇪ Import</button>
+    </div>
+    <div class="field" id="importBox" hidden>
+      <label for="importText">Paste a preset or config</label>
+      <textarea id="importText" rows="5" spellcheck="false" placeholder="# @package _global_&#10;translate_z_3d: '20'&#10;rotate_3d: '[1, 0, 0, 0]'&#10;..."></textarea>
+      <div class="hint">Or drop a .yaml file on the page, or paste one anywhere with Ctrl/Cmd+V.</div>
+    </div>
+    <div class="field-msg" id="msg-config"></div>
+
     <div class="section-label">Transform Expressions</div>
+    <div class="hint">Python, the way PyTTI evaluates it: <code>t</code> is seconds, with <code>pi</code>, <code>sin</code>, <code>radians</code>, <code>**</code> and the rest of the math module, plus depth <code>r R mu</code>.</div>
 
     <div class="field">
-      <label>translate_x</label>
-      <input type="text" id="tx" value="20 * cos(0.2 * t)" spellcheck="false">
+      <label for="tx">translate_x</label>
+      <input type="text" id="tx" value="-1700*sin(radians(1.5))" spellcheck="false" autocomplete="off">
+      <div class="field-msg" id="msg-tx"></div>
     </div>
     <div class="field">
-      <label>translate_y</label>
-      <input type="text" id="ty" value="10 * sin(0.2 * t)" spellcheck="false">
+      <label for="ty">translate_y</label>
+      <input type="text" id="ty" value="0" spellcheck="false" autocomplete="off">
+      <div class="field-msg" id="msg-ty"></div>
     </div>
     <div class="field">
-      <label>translate_z_3d</label>
-      <input type="text" id="tz" value="0" spellcheck="false">
+      <label for="tz">translate_z_3d</label>
+      <input type="text" id="tz" value="(50+10*t)*sin(t/10*pi)**2" spellcheck="false" autocomplete="off">
+      <div class="field-msg" id="msg-tz"></div>
     </div>
     <div class="field">
-      <label>rotate_3d &nbsp;[w, x, y, z]</label>
-      <textarea id="rq" rows="2" spellcheck="false">[cos(radians(1)), 0, sin(radians(1)), 0]</textarea>
+      <label for="rq">rotate_3d &nbsp;[w, x, y, z]</label>
+      <textarea id="rq" rows="3" spellcheck="false">[cos(radians(1.5)), 0, -sin(radians(1.5))/sqrt(2), sin(radians(1.5))/sqrt(2)]</textarea>
+      <div class="field-msg" id="msg-rq"></div>
+    </div>
+    <div class="hint">
+      +x / +y shift the image right / up (the camera moves left / down); +z moves into the scene.
+      Rotation x tilts up, y turns right, z rolls the image clockwise.
+      PyTTI's <code>lock_camera</code> is on by default and cancels x/y moves and turns: set it to <code>false</code> to get this path.
     </div>
 
     <div class="section-label">Frame Settings</div>
-    <div class="field">
-      <label>Total Frames</label>
-      <input type="number" id="totalFrames" value="120" min="10" max="600" style="width:80px">
+    <div class="field-row">
+      <div class="field">
+        <label for="totalFrames">Frames</label>
+        <input type="number" id="totalFrames" value="240" min="2" max="5000">
+      </div>
+      <div class="field">
+        <label for="fpsInput">FPS</label>
+        <input type="number" id="fpsInput" value="12" min="1" max="120" step="any">
+      </div>
     </div>
+    <div class="field-row">
+      <div class="field">
+        <label class="case" for="dv-r">r</label>
+        <input type="number" id="dv-r" value="1000" min="0" step="any">
+      </div>
+      <div class="field">
+        <label class="case" for="dv-R">R</label>
+        <input type="number" id="dv-R" value="10000" min="0" step="any">
+      </div>
+      <div class="field">
+        <label class="case" for="dv-mu">mu</label>
+        <input type="number" id="dv-mu" value="3000" min="0" step="any">
+      </div>
+    </div>
+    <div class="hint">t = frame / FPS, so set FPS to the config's <code>frames_per_second</code>. r, R and mu are PyTTI's nearest, farthest and typical depth in pixels; they change with the image, so pick values to test with.</div>
 
-    <button class="btn-recompute" onclick="recompute()">↻ &nbsp;RECOMPUTE PATH</button>
+    <button class="btn-recompute" onclick="computeFrames()">↻ &nbsp;RECOMPUTE PATH</button>
 
     <div class="section-label">Current Frame Readout</div>
     <div class="readout">
@@ -556,9 +659,7 @@ footer {
         <span class="r-val" id="r-tz">0.000</span>
       </div>
       <div class="readout-sep"></div>
-      <div class="r-row" style="grid-column:1/-1; font-size:10px; color:var(--text2); letter-spacing:2px; padding-bottom:4px">
-        QUATERNION
-      </div>
+      <div class="r-row r-head">ROTATE_3D [W, X, Y, Z]</div>
       <div class="r-row">
         <span class="r-key">W</span>
         <span class="r-val accent" id="r-qw">1.0000</span>
@@ -576,47 +677,64 @@ footer {
         <span class="r-val" id="r-qz">0.0000</span>
       </div>
       <div class="readout-sep"></div>
-      <div class="r-row" style="grid-column:1/-1; font-size:10px; color:var(--text2); letter-spacing:2px; padding-bottom:4px">
-        ACCUMULATED POSITION
-      </div>
+      <div class="r-row r-head">CAMERA POSITION</div>
       <div class="r-row">
-        <span class="r-key">PX</span>
+        <span class="r-key">RIGHT</span>
         <span class="r-val" id="r-px">0.00</span>
       </div>
       <div class="r-row">
-        <span class="r-key">PY</span>
+        <span class="r-key">UP</span>
         <span class="r-val" id="r-py">0.00</span>
       </div>
-      <div class="r-row" style="grid-column:1/-1">
-        <span class="r-key">PZ</span>
+      <div class="r-row">
+        <span class="r-key">FWD</span>
         <span class="r-val" id="r-pz">0.00</span>
-        <span class="r-key" style="margin-left:12px">|P|</span>
+      </div>
+      <div class="r-row">
+        <span class="r-key">|P|</span>
         <span class="r-val" id="r-pmag">0.00</span>
       </div>
       <div class="readout-sep"></div>
-      <div class="r-row" style="grid-column:1/-1">
-        <span class="r-key">EULER X</span>
+      <div class="r-row r-head">CAMERA ANGLES</div>
+      <div class="r-row">
+        <span class="r-key">PITCH</span>
         <span class="r-val" id="r-ex">0.0°</span>
-        <span class="r-key" style="margin-left:8px">Y</span>
+      </div>
+      <div class="r-row">
+        <span class="r-key">YAW</span>
         <span class="r-val" id="r-ey">0.0°</span>
-        <span class="r-key" style="margin-left:8px">Z</span>
+      </div>
+      <div class="r-row">
+        <span class="r-key">ROLL</span>
         <span class="r-val" id="r-ez">0.0°</span>
       </div>
     </div>
 
     <div class="section-label">Path Analysis</div>
     <div class="readout">
-      <div class="r-row" style="grid-column:1/-1">
-        <span class="r-key">TOTAL DIST</span>
-        <span class="r-val" id="a-dist">0.00</span>
-        <span class="r-key" style="margin-left:8px">MAX R</span>
-        <span class="r-val" id="a-maxr">0.00</span>
+      <div class="r-row">
+        <span class="r-key">DIST</span>
+        <span class="r-val" id="a-dist">0</span>
+      </div>
+      <div class="r-row">
+        <span class="r-key">MAX R</span>
+        <span class="r-val" id="a-maxr">0</span>
+      </div>
+      <div class="r-row">
+        <span class="r-key">FRAMES</span>
+        <span class="r-val" id="a-frames">240</span>
+      </div>
+      <div class="r-row">
+        <span class="r-key">LENGTH</span>
+        <span class="r-val" id="a-dur">20.0s</span>
       </div>
       <div class="r-row" style="grid-column:1/-1">
-        <span class="r-key">LOOP?</span>
+        <span class="r-key">LOOPS?</span>
         <span class="r-val" id="a-loop">—</span>
-        <span class="r-key" style="margin-left:8px">FRAMES</span>
-        <span class="r-val" id="a-frames">120</span>
+      </div>
+      <div class="r-row" style="grid-column:1/-1">
+        <span class="r-key">END OFFSET</span>
+        <span class="r-val" id="a-end">—</span>
       </div>
     </div>
 
@@ -638,20 +756,21 @@ footer {
   <div class="hud-tl" id="hud-tl">
     PYTTI MOTION<br>
     PATH EMULATOR<br>
-    <span id="hud-viewlabel" style="color:var(--cyan)">OBSERVER VIEW</span>
+    <span id="hud-viewlabel" style="color:var(--cyan)">OBSERVER VIEW</span><br>
+    <span id="hud-hint">DRAG ORBIT · WHEEL ZOOM</span>
   </div>
   <div class="hud-tr" id="hud-tr">
     <span id="hud-frame">F:000</span><br>
-    <span id="hud-time">T:0.000s</span><br>
-    <span id="hud-fps" style="color:var(--green)">24 FPS</span>
+    <span id="hud-time">T:0.00s</span><br>
+    <span id="hud-fps" style="color:var(--green)">12 FPS</span>
   </div>
   <div class="hud-bl">
-    X <span id="hud-px" style="color:var(--green)">0.00</span> &nbsp;
-    Y <span id="hud-py" style="color:var(--green)">0.00</span> &nbsp;
-    Z <span id="hud-pz" style="color:var(--green)">0.00</span>
+    RIGHT <span id="hud-px" style="color:var(--green)">0.0</span> &nbsp;
+    UP <span id="hud-py" style="color:var(--green)">0.0</span> &nbsp;
+    FWD <span id="hud-pz" style="color:var(--green)">0.0</span>
   </div>
   <div class="hud-br">
-    <span id="hud-quat" style="color:var(--text2)">Q[1,0,0,0]</span>
+    <span id="hud-quat" style="color:var(--text2)">ΣQ[1,0,0,0]</span>
   </div>
 </div>
 
@@ -662,179 +781,604 @@ footer {
   <div class="footer-sep"></div>
   <div class="timeline-wrap">
     <div class="tl-label">0</div>
-    <input type="range" id="timeline" min="0" max="119" value="0" oninput="seekTo(parseInt(this.value))">
-    <div class="frame-counter" id="frameCounter">000 / 120</div>
+    <input type="range" id="timeline" min="0" max="239" value="0" oninput="seekTo(this.value)" aria-label="Frame">
+    <div class="frame-counter" id="frameCounter">000 / 240</div>
   </div>
   <div class="footer-sep"></div>
-  <div class="footer-label">FPS</div>
-  <input type="number" class="num-field" id="fpsInput" value="24" min="1" max="60">
+  <div class="footer-label">SPACE PLAY · ←/→ STEP</div>
 </footer>
+
+<div class="drop-hint" id="dropHint" hidden>DROP .YAML TO IMPORT</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
+const $ = id => document.getElementById(id);
+
 // ═══════════════════════════════════════════════════════════
 //  PRESETS
+//  In PyTTI's units: t in seconds, translations in pixels per
+//  frame. To turn a degrees per frame about axis (x, y, z):
+//  [cos(radians(a/2)), x*sin(radians(a/2)), y*sin(...), z*sin(...)]
 // ═══════════════════════════════════════════════════════════
 const PRESETS = {
-  orbit:      { tx: '20 * cos(0.2 * t)',         ty: '10 * sin(0.2 * t)',         tz: '0',   rq: '[1, 0, 0, 0]' },
-  spin:       { tx: '0',                          ty: '0',                          tz: '0',   rq: '[cos(radians(1)), 0, sin(radians(1)), 0]' },
-  dolly:      { tx: '0',                          ty: '0',                          tz: '-3',  rq: '[1, 0, 0, 0]' },
-  spiral:     { tx: '5 * cos(0.1 * t)',           ty: '-0.5',                       tz: '5 * sin(0.1 * t)', rq: '[cos(radians(0.5)), 0, sin(radians(0.5)), 0]' },
-  fig8:       { tx: '15 * sin(0.15 * t)',         ty: '8 * sin(0.3 * t)',           tz: '0',   rq: '[1, 0, 0, 0]' },
-  pendulum:   { tx: '20 * sin(0.08 * t)',         ty: '0',                          tz: '0',   rq: '[cos(radians(sin(t*0.05)*2)), 0, 0, sin(radians(sin(t*0.05)*2))]' },
-  corkscrew:  { tx: '0',                          ty: '0',                          tz: '-2',  rq: '[cos(radians(2)), sin(radians(1)), 0, 0]' },
-  zoomtilt:   { tx: '0',                          ty: '-1',                         tz: '-4',  rq: '[cos(radians(0.5)), sin(radians(0.3)), 0, 0]' },
-  barrelroll: { tx: '0',                          ty: '0',                          tz: '-2',  rq: '[cos(radians(0.5)), 0, 0, sin(radians(3))]' },
-  drift:      { tx: '10 * sin(0.05 * t)',         ty: '5 * cos(0.1 * t)',           tz: '-1',  rq: '[cos(radians(0.3)), 0, sin(radians(sin(t*0.03))), 0]' },
+  pytti:     { tx: '-1700*sin(radians(1.5))', ty: '0', tz: '(50+10*t)*sin(t/10*pi)**2',
+               rq: '[cos(radians(1.5)), 0, -sin(radians(1.5))/sqrt(2), sin(radians(1.5))/sqrt(2)]' },
+  orbit:     { tx: '-3000*sin(radians(1.5))', ty: '0', tz: '0', rq: '[cos(radians(1.5)), 0, -sin(radians(1.5)), 0]' },
+  pan:       { tx: '0', ty: '0', tz: '0', rq: '[cos(radians(0.5)), 0, sin(radians(0.5)), 0]' },
+  dolly:     { tx: '0', ty: '0', tz: '30', rq: '[1, 0, 0, 0]' },
+  pushpull:  { tx: '0', ty: '0', tz: '40*sin(2*pi*t/4)', rq: '[1, 0, 0, 0]' },
+  tunnel:    { tx: '0', ty: '0', tz: '30', rq: '[cos(radians(1)), 0, 0, sin(radians(1))]' },
+  fig8:      { tx: '20*cos(pi*t/4)', ty: '10*cos(pi*t/2)', tz: '0', rq: '[1, 0, 0, 0]' },
+  crane:     { tx: '0', ty: '-10', tz: '10', rq: '[cos(radians(0.15)), -sin(radians(0.15)), 0, 0]' },
+  pendulum:  { tx: '0', ty: '0', tz: '15', rq: '[cos(radians(1.5*sin(2*pi*t/3))), 0, 0, sin(radians(1.5*sin(2*pi*t/3)))]' },
+  drift:     { tx: '8*sin(2*pi*t/7)', ty: '4*sin(2*pi*t/5)', tz: '15',
+               rq: '[cos(radians(0.3*sin(2*pi*t/9))), 0, sin(radians(0.3*sin(2*pi*t/9))), 0]' },
 };
 
 function loadPreset(key) {
   if (!key || !PRESETS[key]) return;
   const p = PRESETS[key];
-  document.getElementById('tx').value = p.tx;
-  document.getElementById('ty').value = p.ty;
-  document.getElementById('tz').value = p.tz;
-  document.getElementById('rq').value = p.rq;
-  recompute();
+  ['tx', 'ty', 'tz', 'rq'].forEach(id => { $(id).value = p[id]; });
+  computeFrames();
 }
 
 // ═══════════════════════════════════════════════════════════
 //  EXPRESSION EVALUATOR
+//  PyTTI runs these strings as Python with the math module,
+//  abs/min/max/pow/round, t in seconds and the depth stats r, R
+//  and mu in scope. This interprets that subset of Python, so a
+//  pasted expression means the same here as in PyTTI (pi, **, //,
+//  %, and/or/not, x if c else y) and nothing typed runs as JS.
 // ═══════════════════════════════════════════════════════════
-const radians = d => d * Math.PI / 180;
-const degrees = r => r * 180 / Math.PI;
-const { sin, cos, tan, abs, sqrt, pow, floor, ceil, round,
-        PI, log, exp, min, max, sign, atan2, hypot } = Math;
+class ExprError extends Error {}
+const fail = msg => { throw new ExprError(msg); };
 
-function evalExpr(expr, t) {
-  try {
-    const result = new Function(
-      't','sin','cos','tan','abs','sqrt','pow','floor','ceil','round',
-      'PI','log','exp','min','max','sign','radians','degrees','atan2','hypot',
-      `"use strict"; return (${expr});`
-    )(t, sin, cos, tan, abs, sqrt, pow, floor, ceil, round,
-      PI, log, exp, min, max, sign, radians, degrees, atan2, hypot);
-    return typeof result === 'number' ? result : (Array.isArray(result) ? result : 0);
-  } catch(e) { return 0; }
+const isNum = v => typeof v === 'number';
+const num = v => isNum(v) ? v : fail('expected a number, got a list');
+const truthy = v => Array.isArray(v) ? v.length > 0 : v !== 0;
+
+// Python's round(): halves go to the even neighbour
+function pyRound(x, digits = 0) {
+  const m = 10 ** digits, y = x * m, f = Math.floor(y), d = y - f;
+  return (d > 0.5 || (d === 0.5 && f % 2 !== 0) ? f + 1 : f) / m;
 }
 
-function evalQuat(expr, t) {
-  try {
-    const r = evalExpr(expr, t);
-    if (Array.isArray(r) && r.length >= 4) return r;
-  } catch(e) {}
-  return [1, 0, 0, 0];
+function pyPow(a, b) {
+  if (a === 0 && b < 0) fail('0 raised to a negative power (division by zero)');
+  if (a < 0 && !Number.isInteger(b)) fail('a negative number to a fractional power is complex in Python');
+  return a ** b;
 }
 
-function validateExpr(id, expr, t = 0) {
-  const el = document.getElementById(id);
-  try {
-    const r = evalExpr(expr, t);
-    el.classList.remove('error');
-    return true;
-  } catch(e) {
-    el.classList.add('error');
-    return false;
+function pyFactorial(n) {
+  if (!Number.isInteger(n) || n < 0) fail('factorial() needs a whole number ≥ 0');
+  let v = 1;
+  for (let i = 2; i <= n; i++) v *= i;
+  return v;
+}
+
+// Wraps a numeric function: number arguments only, and NaN/infinity
+// from finite input is the ValueError/OverflowError Python would raise
+const OVERFLOWS = new Set(['exp', 'exp2', 'expm1', 'sinh', 'cosh', 'pow', 'factorial']);
+const mathFn = fn => (name, args) => {
+  const xs = args.map(num);
+  const v = fn(...xs);
+  if (!Number.isFinite(v) && xs.every(Number.isFinite)) {
+    fail(OVERFLOWS.has(name) && !Number.isNaN(v) ? `${name}() overflowed` : `math domain error in ${name}()`);
   }
+  return v;
+};
+
+// min()/max() take several numbers or a single list
+const minMax = pick => (name, args) => {
+  const xs = args.length === 1
+    ? (Array.isArray(args[0]) ? args[0] : fail(`${name}() of one number: give it two or more, or a list`))
+    : args.map(num);
+  if (!xs.length) fail(`${name}() of an empty list`);
+  return pick(...xs);
+};
+
+const FUNCS = Object.create(null);   // name → [impl, min args, max args]
+const def = (names, impl, min, max = min) => names.split(' ').forEach(n => { FUNCS[n] = [impl, min, max]; });
+'sin cos tan asin acos atan sinh cosh tanh asinh acosh atanh sqrt cbrt exp expm1 log10 log2 log1p floor ceil trunc'
+  .split(' ').forEach(n => def(n, mathFn(Math[n]), 1));
+def('abs fabs', mathFn(Math.abs), 1);
+def('atan2', mathFn(Math.atan2), 2);
+def('hypot', mathFn(Math.hypot), 0, Infinity);
+def('exp2', mathFn(x => 2 ** x), 1);
+def('log', mathFn((x, base) => base === undefined ? Math.log(x) : Math.log(x) / Math.log(base)), 1, 2);
+def('degrees', mathFn(r => r * 180 / Math.PI), 1);
+def('radians', mathFn(d => d * Math.PI / 180), 1);
+def('pow', mathFn(pyPow), 2);
+def('round', mathFn(pyRound), 1, 2);
+def('fmod', mathFn((a, b) => b === 0 ? fail('fmod() by zero') : a % b), 2);
+def('copysign', mathFn((a, b) => Math.abs(a) * (b < 0 || Object.is(b, -0) ? -1 : 1)), 2);
+def('factorial', mathFn(pyFactorial), 1);
+def('min', minMax(Math.min), 1, Infinity);
+def('max', minMax(Math.max), 1, Infinity);
+
+const CONSTS = Object.assign(Object.create(null), { pi: Math.PI, e: Math.E, tau: 2 * Math.PI, inf: Infinity, True: 1, False: 0 });
+const VARS = ['t', 'r', 'R', 'mu'];
+const KEYWORDS = new Set(['and', 'or', 'not', 'if', 'else', 'lambda', 'for', 'in', 'is', 'None']);
+// In Python's math module, so valid in PyTTI, but not implemented here
+const PY_MATH_ONLY = new Set(['comb', 'dist', 'erf', 'erfc', 'frexp', 'fsum', 'gamma', 'gcd', 'isclose', 'isfinite',
+  'isinf', 'isnan', 'isqrt', 'lcm', 'ldexp', 'lgamma', 'modf', 'nan', 'nextafter', 'perm', 'prod', 'remainder', 'ulp']);
+
+const CMP = { '<': (a, b) => a < b, '>': (a, b) => a > b, '<=': (a, b) => a <= b,
+              '>=': (a, b) => a >= b, '==': (a, b) => a === b, '!=': (a, b) => a !== b };
+const ADD = { '+': (a, b) => a + b, '-': (a, b) => a - b };
+const MUL = {
+  '*':  (a, b) => a * b,
+  '/':  (a, b) => b === 0 ? fail('division by zero') : a / b,
+  '//': (a, b) => b === 0 ? fail('division by zero') : Math.floor(a / b),
+  '%':  (a, b) => b === 0 ? fail('modulo by zero') : a - b * Math.floor(a / b),
+};
+
+function unknownName(name) {
+  if (PY_MATH_ONLY.has(name)) return `${name} works in PyTTI but this preview doesn't support it`;
+  if (KEYWORDS.has(name)) return `'${name}' isn't supported in the preview`;
+  const lower = name.toLowerCase();
+  if (lower !== name && (lower in FUNCS || lower in CONSTS || VARS.includes(lower))) {
+    return `unknown name '${name}': Python is case-sensitive, use '${lower}'`;
+  }
+  return `unknown name '${name}'`;
+}
+
+// Accepts a pasted YAML value, key and quotes included: translate_x: '10*sin(t)'
+function unquote(src) {
+  let s = src.trim().replace(/^(translate_x|translate_y|translate_z_3d|rotate_3d)\s*[:=]\s*/, '');
+  const q = s[0];
+  if (s.length >= 2 && (q === "'" || q === '"') && s.endsWith(q)) {
+    s = s.slice(1, -1);
+    if (q === "'") s = s.replace(/''/g, "'");
+  }
+  return s;
+}
+
+const TOKEN = /\s*(?:((?:\d[\d_]*\.?[\d_]*|\.\d[\d_]*)(?:[eE][+-]?\d+)?)|([A-Za-z_]\w*)|(\*\*|\/\/|[=!<>]=|[-+*\/%<>()\[\],]))/y;
+
+function tokenize(src) {
+  const toks = [];
+  let pos = 0;
+  while (!/^\s*(#[^]*)?$/.test(src.slice(pos))) {   // stop at the end or a # comment
+    TOKEN.lastIndex = pos;
+    const m = TOKEN.exec(src);
+    if (!m) {
+      const ch = src.slice(pos).trimStart()[0];
+      fail(ch === '.' ? "no dots: write sin(t), not math.sin(t)" : `unexpected character '${ch}'`);
+    }
+    pos = TOKEN.lastIndex;
+    if (m[1] !== undefined) toks.push({ type: 'num', text: m[1], value: parseFloat(m[1].replace(/_/g, '')) });
+    else if (m[2] !== undefined) toks.push({ type: 'name', text: m[2] });
+    else toks.push({ type: 'op', text: m[3] });
+  }
+  toks.push({ type: 'end', text: '' });
+  return toks;
+}
+
+// Parses src into a function of env ({ t, r, R, mu }) returning a number or a list.
+// Follows Python's grammar and precedence for the expression subset PyTTI allows.
+function compileExpr(src) {
+  const toks = tokenize(unquote(src));
+  if (toks.length === 1) fail('empty: PyTTI needs a value, such as 0');
+  let p = 0;
+
+  const at = text => toks[p].type !== 'num' && toks[p].text === text;
+  const take = text => at(text) && ++p;
+  const describe = tok => tok.type === 'end' ? 'the end' : `'${tok.text}'`;
+  const expect = (text, context) => {
+    if (!take(text)) fail(`expected '${text}'${context ? ' ' + context : ''} but found ${describe(toks[p])}`);
+  };
+  const unexpected = () => {
+    const tok = toks[p], prev = toks[p - 1];
+    const prevEnds = prev && (prev.type === 'num' || (prev.type === 'name' && !KEYWORDS.has(prev.text)) || prev.text === ')' || prev.text === ']');
+    const starts = tok.type === 'num' || (tok.type === 'name' && !KEYWORDS.has(tok.text)) || tok.text === '(';
+    fail(`unexpected ${describe(tok)}` + (prevEnds && starts ? ' (missing * or another operator?)' : ''));
+  };
+
+  // test: or_test ['if' or_test 'else' test]
+  function test() {
+    const a = orTest();
+    if (!take('if')) return a;
+    const cond = orTest();
+    expect('else', "in 'x if condition else y'");
+    const b = test();
+    return env => truthy(cond(env)) ? a(env) : b(env);
+  }
+  function orTest() {
+    let a = andTest();
+    while (take('or')) {
+      const l = a, r = andTest();
+      a = env => { const v = l(env); return truthy(v) ? v : r(env); };
+    }
+    return a;
+  }
+  function andTest() {
+    let a = notTest();
+    while (take('and')) {
+      const l = a, r = notTest();
+      a = env => { const v = l(env); return truthy(v) ? r(env) : v; };
+    }
+    return a;
+  }
+  function notTest() {
+    if (!take('not')) return comparison();
+    const a = notTest();
+    return env => truthy(a(env)) ? 0 : 1;
+  }
+  // Chained like Python: a < b < c is (a < b) and (b < c)
+  function comparison() {
+    const first = arith(), ops = [], rights = [];
+    while (toks[p].type === 'op' && CMP[toks[p].text]) {
+      ops.push(CMP[toks[p++].text]);
+      rights.push(arith());
+    }
+    if (!ops.length) return first;
+    return env => {
+      let a = num(first(env));
+      for (let i = 0; i < ops.length; i++) {
+        const b = num(rights[i](env));
+        if (!ops[i](a, b)) return 0;
+        a = b;
+      }
+      return 1;
+    };
+  }
+  function binary(next, ops) {
+    let a = next();
+    while (toks[p].type === 'op' && ops[toks[p].text]) {
+      const f = ops[toks[p++].text], l = a, r = next();
+      a = env => f(num(l(env)), num(r(env)));
+    }
+    return a;
+  }
+  function arith() { return binary(term, ADD); }
+  function term() { return binary(factor, MUL); }
+  function factor() {
+    if (take('-')) { const a = factor(); return env => -num(a(env)); }
+    if (take('+')) { const a = factor(); return env => num(a(env)); }
+    return power();
+  }
+  // ** binds tighter than a unary minus on its left (-2**2 is -4) and is right-associative
+  function power() {
+    const base = atom();
+    if (!take('**')) return base;
+    const exp = factor();
+    return env => pyPow(num(base(env)), num(exp(env)));
+  }
+  function atom() {
+    const tok = toks[p];
+    if (tok.type === 'num') { p++; return () => tok.value; }
+    if (take('(')) { const a = sequence(')', true); expect(')'); return a; }
+    if (take('[')) { const a = sequence(']', false); expect(']'); return a; }
+    if (tok.type === 'name' && !['and', 'or', 'if', 'else'].includes(tok.text)) {
+      p++;
+      return take('(') ? call(tok.text) : name(tok.text);
+    }
+    if (tok.type === 'end') fail('the expression ends too early');
+    unexpected();
+  }
+  // (a) is grouping; (a,) (a, b) and [a, b] are lists of numbers
+  function sequence(close, paren) {
+    const items = [];
+    let comma = false;
+    while (!at(close)) {
+      items.push(test());
+      if (!take(',')) break;
+      comma = true;
+    }
+    if (paren && items.length === 1 && !comma) return items[0];
+    if (paren && !items.length) fail("empty '()'");
+    return env => items.map(f => num(f(env)));
+  }
+  function call(fname) {
+    const args = [];
+    while (!at(')')) {
+      args.push(test());
+      if (!take(',')) break;
+    }
+    expect(')', `to close ${fname}(`);
+    const spec = FUNCS[fname];
+    if (!spec) {
+      fail(VARS.includes(fname) || fname in CONSTS ? `'${fname}' is a number, not a function (missing *?)` : unknownName(fname));
+    }
+    const [impl, min, max] = spec;
+    if (args.length < min || args.length > max) {
+      const want = min === max ? `${min} argument${min === 1 ? '' : 's'}` : max === Infinity ? `at least ${min}` : `${min} or ${max} arguments`;
+      fail(`${fname}() takes ${want}, got ${args.length}`);
+    }
+    return env => impl(fname, args.map(a => a(env)));
+  }
+  function name(n) {
+    if (VARS.includes(n)) return env => env[n];
+    if (n in CONSTS) { const v = CONSTS[n]; return () => v; }
+    if (n in FUNCS) fail(`'${n}' is a function: call it as ${n}(...)`);
+    fail(unknownName(n));
+  }
+
+  // A bare top-level tuple is a list too: cos(a), 0, sin(a), 0
+  const items = [test()];
+  let comma = false;
+  while (take(',')) {
+    comma = true;
+    if (toks[p].type === 'end') break;
+    items.push(test());
+  }
+  if (toks[p].type !== 'end') unexpected();
+  return comma ? env => items.map(f => num(f(env))) : items[0];
 }
 
 // ═══════════════════════════════════════════════════════════
 //  FRAME COMPUTATION
 // ═══════════════════════════════════════════════════════════
-let frames = [];
-let totalFrames = 120;
+let frames = [];   // camera pose per output frame; frames[0] is the start pose
+let totalFrames = 240;
+let fps = 12;
+let currentFrame = 0;
 
-function getParams() {
+const FIELDS = ['tx', 'ty', 'tz', 'rq'];
+const QUAT_TOLERANCE = 1e-3;
+
+const NUMBER_INPUTS = {
+  totalFrames: { min: 2, max: 5000, fallback: 240, int: true },
+  fpsInput:    { min: 1, max: 120, fallback: 12 },
+  'dv-r':      { min: 0, max: 1e7, fallback: 1000 },
+  'dv-R':      { min: 0, max: 1e7, fallback: 10000 },
+  'dv-mu':     { min: 0, max: 1e7, fallback: 3000 },
+};
+
+// An input's value clamped to its range; write puts the clamped value back in the field
+function readNumber(id, write = false) {
+  const spec = NUMBER_INPUTS[id];
+  let v = parseFloat($(id).value);
+  if (!Number.isFinite(v)) v = spec.fallback;
+  if (spec.int) v = Math.round(v);
+  v = Math.min(spec.max, Math.max(spec.min, v));
+  if (write) $(id).value = v;
+  return v;
+}
+
+function setMsg(id, text, kind = 'error') {
+  const msg = $('msg-' + id);
+  msg.textContent = text;
+  msg.className = 'field-msg ' + kind;
+  if ($(id)) $(id).classList.toggle('error', !!text && kind === 'error');
+}
+
+// Evaluates one frame's settings, tagging errors with the field they came from
+function evalFrame(fns, env) {
+  const field = (id, check) => {
+    try { return check(fns[id](env)); }
+    catch (e) { if (e instanceof ExprError && !e.field) e.field = id; throw e; }
+  };
+  const single = v => !isNum(v) ? fail('must be one number, not a list')
+                    : !Number.isFinite(v) ? fail("isn't a finite number") : v;
   return {
-    tx: document.getElementById('tx').value,
-    ty: document.getElementById('ty').value,
-    tz: document.getElementById('tz').value,
-    rq: document.getElementById('rq').value,
-    total: parseInt(document.getElementById('totalFrames').value) || 120
+    tx: field('tx', single),
+    ty: field('ty', single),
+    tz: field('tz', single),
+    q:  field('rq', v => {
+      if (!Array.isArray(v) || v.length !== 4) fail('must be a list of 4 numbers: [w, x, y, z]');
+      if (!v.every(Number.isFinite)) fail('has a component that isn\'t a finite number');
+      return v;
+    }),
   };
 }
 
 function computeFrames() {
-  const p = getParams();
-  totalFrames = Math.max(10, Math.min(600, p.total));
-  frames = [];
+  totalFrames = readNumber('totalFrames');
+  fps = readNumber('fpsInput');
+  const env = { t: 0, r: readNumber('dv-r'), R: readNumber('dv-R'), mu: readNumber('dv-mu') };
 
-  // THREE quaternion: (x, y, z, w)
-  // PyTTI quaternion: [w, x, y, z]
-  let accPos  = new THREE.Vector3(0, 0, 0);
-  let accQuat = new THREE.Quaternion(0, 0, 0, 1); // identity
+  const fns = {};
+  let parsed = true;
+  FIELDS.forEach(id => {
+    try { fns[id] = compileExpr($(id).value); setMsg(id, ''); }
+    catch (e) {
+      if (!(e instanceof ExprError)) throw e;
+      setMsg(id, e.message);
+      parsed = false;
+    }
+  });
+  if (!parsed) return;   // keep showing the last good path until it parses
 
-  let totalDist = 0;
-  let maxR = 0;
-  let prevPos = new THREE.Vector3(0, 0, 0);
+  const pos = new THREE.Vector3(), rot = new THREE.Quaternion();
+  const move = new THREE.Vector3(), turn = new THREE.Quaternion();
+  const next = [];
+  let runError = null, worstQuat = null;
 
   for (let f = 0; f < totalFrames; f++) {
-    const t = f;
+    env.t = f / fps;
+    let d;
+    try { d = evalFrame(fns, env); }
+    catch (e) {
+      if (!(e instanceof ExprError)) throw e;
+      runError = { field: e.field, message: `${e.message} at frame ${f} (t = ${env.t.toFixed(2)}s)` };
+      break;
+    }
+    next.push({ pos: pos.clone(), quat: rot.clone(), t: env.t, raw: d });
 
-    // Evaluate delta transform for this frame
-    const tx = evalExpr(p.tx, t);
-    const ty = evalExpr(p.ty, t);
-    const tz = evalExpr(p.tz, t);
+    const norm = Math.hypot(...d.q);
+    if (Math.abs(norm - 1) > QUAT_TOLERANCE && (!worstQuat || Math.abs(norm - 1) > Math.abs(worstQuat.norm - 1))) {
+      worstQuat = { norm, f };
+    }
 
-    const rqArr = evalQuat(p.rq, t); // [w, x, y, z]
-    const frameQuat = new THREE.Quaternion(
-      rqArr[1] || 0,  // x
-      rqArr[2] || 0,  // y
-      rqArr[3] || 0,  // z
-      typeof rqArr[0] === 'number' ? rqArr[0] : 1 // w
-    ).normalize();
-
-    // Accumulate rotation
-    accQuat.multiply(frameQuat);
-    accQuat.normalize();
-
-    // Translate in accumulated local space
-    const localT = new THREE.Vector3(tx, ty, tz);
-    localT.applyQuaternion(accQuat);
-    accPos.add(localT);
-
-    const posClone = accPos.clone();
-    const r = posClone.length();
-    if (r > maxR) maxR = r;
-    totalDist += posClone.distanceTo(prevPos);
-    prevPos = posClone;
-
-    // Euler for readout
-    const euler = new THREE.Euler().setFromQuaternion(accQuat.clone(), 'YXZ');
-
-    frames.push({
-      pos: posClone,
-      quat: accQuat.clone(),
-      euler: euler,
-      t,
-      raw: { tx, ty, tz, rqArr }
-    });
+    // PyTTI moves every point p of the frame to R·(p + t), in a view space whose
+    // y points down. For a three.js camera (y up, looking down -z) that is a move
+    // of -t along the current heading, then a turn by R's inverse with y flipped:
+    // [w, x, y, z] → (x, -y, z, w).
+    move.set(-d.tx, -d.ty, -d.tz).applyQuaternion(rot);
+    pos.add(move);
+    turn.set(d.q[1], -d.q[2], d.q[3], d.q[0]).normalize();
+    rot.multiply(turn).normalize();
   }
 
-  // Path analysis
-  const first = frames[0].pos;
-  const last  = frames[frames.length - 1].pos;
-  const isLoop = first.distanceTo(last) < maxR * 0.05;
+  if (runError) setMsg(runError.field, runError.message);
+  else if (worstQuat) {
+    setMsg('rq', `|q| = ${worstQuat.norm.toFixed(4)} at frame ${worstQuat.f}. PyTTI doesn't normalize rotate_3d, ` +
+                 `so it will also scale and skew each frame; the preview shows it normalized.`, 'warn');
+  }
+  if (next.length < 2) return;
 
-  document.getElementById('a-dist').textContent   = totalDist.toFixed(1);
-  document.getElementById('a-maxr').textContent   = maxR.toFixed(1);
-  document.getElementById('a-loop').textContent   = isLoop ? 'YES' : 'NO';
-  document.getElementById('a-frames').textContent = totalFrames;
+  frames = next;
+  analyzePath(runError ? null : { pos, rot });
 
-  document.getElementById('timeline').max = totalFrames - 1;
-  if (currentFrame >= totalFrames) currentFrame = 0;
-
-  updatePath3D();
+  $('timeline').max = frames.length - 1;
+  currentFrame = Math.min(currentFrame, frames.length - 1);
+  fitObserver();
+  buildPath();
   updateFrameDisplay(currentFrame);
-  updateObserverTarget();
 }
 
-function recompute() { computeFrames(); }
+// end is the pose after the last frame's move: the motion loops if it lands back on frame 0
+function analyzePath(end) {
+  let dist = 0, maxR = 0;
+  frames.forEach((f, i) => {
+    if (i) dist += f.pos.distanceTo(frames[i - 1].pos);
+    maxR = Math.max(maxR, f.pos.length());
+  });
+  $('a-dist').textContent   = dist.toFixed(0);
+  $('a-maxr').textContent   = maxR.toFixed(0);
+  $('a-frames').textContent = frames.length;
+  $('a-dur').textContent    = (frames.length / fps).toFixed(1) + 's';
+
+  if (!end) {
+    $('a-loop').textContent = '—';
+    $('a-end').textContent  = '—';
+    return;
+  }
+  const endDist  = end.pos.length();
+  const endAngle = 2 * Math.acos(Math.min(1, Math.abs(end.rot.w))) * 180 / Math.PI;
+  const loops    = endDist <= Math.max(maxR * 0.05, 1) && endAngle < 5;
+  $('a-loop').textContent = loops ? 'YES' : 'NO';
+  $('a-end').textContent  = `${endDist.toFixed(0)} px · ${endAngle.toFixed(1)}°`;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  PYTTI CONFIG
+//  Copy, save and import pxl-pshr/pytti presets: YAML files in
+//  app/config/conf/ that start with '# @package _global_' and
+//  keep every expression in single quotes.
+// ═══════════════════════════════════════════════════════════
+const FIELD_KEYS = { tx: 'translate_x', ty: 'translate_y', tz: 'translate_z_3d', rq: 'rotate_3d' };
+const yamlQuote = s => `'${String(s).replace(/'/g, "''")}'`;
+
+function configYaml() {
+  const n = readNumber('totalFrames'), rate = readNumber('fpsInput');
+  return [
+    '# @package _global_',
+    `# Camera motion from PyTTI Motion Preview: ${n} frames at ${rate} fps (${(n / rate).toFixed(1)}s)`,
+    "animation_mode: '3D'",
+    ...FIELDS.map(id => `${FIELD_KEYS[id]}: ${yamlQuote(unquote($(id).value))}`),
+    `frames_per_second: ${rate}`,
+    'lock_camera: false',
+    '',
+  ].join('\n');
+}
+
+const hasErrors = () => FIELDS.some(id => $(id).classList.contains('error'));
+
+async function copyYaml() {
+  const text = configYaml();
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch (e) {
+    // No async clipboard (e.g. an insecure context): fall back to a selection copy
+    const ta = Object.assign(document.createElement('textarea'), { value: text });
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    ta.remove();
+  }
+  setMsg('config', hasErrors()
+    ? 'Copied, but an expression above has an error PyTTI will hit too.'
+    : 'Copied. Paste it into a preset in pytti\'s app/config/conf/, or use ↓ .yaml to save one.',
+    hasErrors() ? 'warn' : 'ok');
+}
+
+function downloadYaml() {
+  const url = URL.createObjectURL(new Blob([configYaml()], { type: 'text/yaml' }));
+  Object.assign(document.createElement('a'), { href: url, download: 'motion-preview.yaml' }).click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  setMsg('config', 'Saved motion-preview.yaml. Put it in pytti\'s app/config/conf/ and press refresh next to Load Config.', 'ok');
+}
+
+function toggleImport() {
+  const box = $('importBox');
+  box.hidden = !box.hidden;
+  $('importToggle').classList.toggle('active', !box.hidden);
+  if (!box.hidden) $('importText').focus();
+}
+
+// Top-level `key: value` lines of a preset, or `key = value` lines of a notebook.
+// Enough for pytti's flat settings; nested blocks like input_audio_filters are skipped.
+function parseFlatConfig(text) {
+  const out = {};
+  for (const line of text.split(/\r?\n/)) {
+    const m = /^([A-Za-z_]\w*)\s*[:=]\s*(.*)$/.exec(line);
+    if (!m) continue;
+    const s = m[2].trim();
+    let item;
+    if (s[0] === "'") {
+      const q = /^'((?:[^']|'')*)'/.exec(s);
+      item = { value: (q ? q[1] : s.slice(1)).replace(/''/g, "'"), quoted: true };
+    } else if (s[0] === '"') {
+      const q = /^"((?:[^"\\]|\\.)*)"/.exec(s);
+      item = { value: (q ? q[1] : s.slice(1)).replace(/\\(.)/g, '$1'), quoted: true };
+    } else {
+      item = { value: s.replace(/\s+#.*$/, ''), quoted: false };
+    }
+    out[m[1]] = item;
+  }
+  return out;
+}
+
+const looksLikeConfig = text => /^(translate_x|translate_y|translate_z_3d|rotate_3d|frames_per_second)\s*[:=]/m.test(text);
+
+function importConfig(text) {
+  const cfg = parseFlatConfig(text);
+  const numberOf = key => cfg[key] && Number.isFinite(parseFloat(cfg[key].value)) ? parseFloat(cfg[key].value) : null;
+  const loaded = [], notes = [];
+
+  FIELDS.forEach(id => {
+    const item = cfg[FIELD_KEYS[id]];
+    if (!item) return;
+    $(id).value = item.value;
+    loaded.push(FIELD_KEYS[id]);
+    if (id === 'rq' && !item.quoted && item.value.startsWith('[')) {
+      notes.push("rotate_3d isn't in quotes, so YAML reads it as a list and PyTTI fails (Copy YAML quotes it)");
+    }
+  });
+  const rate = numberOf('frames_per_second');
+  if (rate) { $('fpsInput').value = rate; readNumber('fpsInput', true); loaded.push(`${rate} fps`); }
+  const far = numberOf('far_plane');
+  if (far) { $('dv-R').value = far; loaded.push(`R = far_plane`); }
+  // One frame per steps_per_frame once the pre-animation steps are done
+  const sps = numberOf('steps_per_scene'), spf = numberOf('steps_per_frame');
+  if (sps && spf) {
+    const scenes = cfg.scenes ? Math.max(1, cfg.scenes.value.split('||').filter(s => s.trim()).length) : 1;
+    $('totalFrames').value = Math.floor((scenes * sps - (numberOf('pre_animation_steps') || 0)) / spf);
+    loaded.push(`${readNumber('totalFrames', true)} frames`);
+  }
+
+  const mode = cfg.animation_mode && cfg.animation_mode.value.trim();
+  if (mode && mode !== '3D') notes.push(`animation_mode is ${mode}, and this previews 3D motion`);
+  if (cfg.lock_camera && /^true$/i.test(cfg.lock_camera.value.trim())) {
+    notes.push('lock_camera: true cancels x/y moves and turns in the render; set it to false to get this path');
+  }
+
+  if (!loaded.length) {
+    setMsg('config', 'No motion settings found: looking for translate_x, translate_y, translate_z_3d, rotate_3d and frames_per_second.');
+    return;
+  }
+  $('presetSelect').value = '';
+  computeFrames();
+  setMsg('config', `Loaded ${loaded.join(', ')}.` + (notes.length ? ` Note: ${notes.join('. ')}.` : ''), notes.length ? 'warn' : 'ok');
+}
 
 // ═══════════════════════════════════════════════════════════
 //  THREE.JS SETUP
 // ═══════════════════════════════════════════════════════════
-const canvas  = document.getElementById('canvas3d');
+const canvas   = $('canvas3d');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setClearColor(0x030c12, 1);
@@ -842,60 +1386,44 @@ renderer.setClearColor(0x030c12, 1);
 // ── PATH SCENE ──
 const pathScene  = new THREE.Scene();
 const pathCamera = new THREE.PerspectiveCamera(55, 1, 0.5, 20000);
-pathCamera.position.set(300, 220, 400);
-pathCamera.lookAt(0, 0, 0);
 
-// Observer camera target (lerped)
-let observerTarget   = new THREE.Vector3(0, 0, 0);
-let observerAngle    = 0;
-let observerDistance = 600;
+// Observer orbit around the path. Drag turns it, the wheel zooms, double-click resets.
+const observer = { target: new THREE.Vector3(), distance: 360, scale: 1, angle: 0, pitch: 0.5, zoom: 1, drag: null };
 
-function updateObserverTarget() {
-  if (!frames.length) return;
-  // Find bounding box center
-  const bb = new THREE.Box3();
-  frames.forEach(f => bb.expandByPoint(f.pos));
-  const center = new THREE.Vector3();
-  bb.getCenter(center);
-  observerTarget.copy(center);
-  const size = new THREE.Vector3();
-  bb.getSize(size);
-  observerDistance = Math.max(size.length() * 1.4, 300);
-}
-
-// Build reference grid + axes for path scene
+// Grid and axes, scaled with the path like the markers and frustum
+// so they stay readable whether the camera moves 50 px or 50,000
+const refGroup = new THREE.Group();
+pathScene.add(refGroup);
 {
-  const grid = new THREE.GridHelper(2000, 60, 0x071820, 0x040e18);
-  pathScene.add(grid);
-
-  // Axes
+  refGroup.add(new THREE.GridHelper(2000, 60, 0x071820, 0x040e18));
   const mkLine = (pts, color) => {
     const g = new THREE.BufferGeometry().setFromPoints(pts.map(p => new THREE.Vector3(...p)));
     return new THREE.Line(g, new THREE.LineBasicMaterial({ color }));
   };
-  pathScene.add(mkLine([[-800,0,0],[800,0,0]], 0x3a0808));
-  pathScene.add(mkLine([[0,-800,0],[0,800,0]], 0x083a08));
-  pathScene.add(mkLine([[0,0,-800],[0,0,800]], 0x08083a));
-
-  // Origin marker
-  const ogGeo = new THREE.SphereGeometry(5, 8, 8);
-  const ogMesh = new THREE.Mesh(ogGeo, new THREE.MeshBasicMaterial({ color: 0x00e5ff }));
-  pathScene.add(ogMesh);
-
-  pathScene.add(new THREE.AmbientLight(0x00e5ff, 0.3));
-  const dl = new THREE.DirectionalLight(0xffffff, 0.6);
-  dl.position.set(200, 400, 200);
-  pathScene.add(dl);
+  refGroup.add(mkLine([[-800,0,0],[800,0,0]], 0x3a0808));
+  refGroup.add(mkLine([[0,-800,0],[0,800,0]], 0x083a08));
+  refGroup.add(mkLine([[0,0,-800],[0,0,800]], 0x08083a));
 }
 
 // ── CAM SCENE ──
+// A reference world in PyTTI's pixel units: with the default near and far
+// planes, 1 m of depth is about 1000 px. PyTTI's camera can go anywhere, so
+// the world repeats every CAM_TILE px in x, y and z around the camera.
+const CAM_TILE   = 10000;
+const CAM_FOG    = 3600;   // the world's edges and its repeats stay past this
+const CAM_FLOOR  = -400;
+const CAM_MID    = 900;    // middle of a layer's content, from the floor to the beam tops
+const FLOOR_SNAP = 1000;   // texture repeat and grid spacing both divide this
+
 const camScene  = new THREE.Scene();
-const camCamera = new THREE.PerspectiveCamera(60, 1, 0.5, 8000);
-camScene.fog = new THREE.Fog(0x030c12, 600, 2500);
+const camCamera = new THREE.PerspectiveCamera(60, 1, 1, CAM_TILE);   // PyTTI's default field_of_view
+const camWrapped = [];     // [object, home x, home y, home z], re-placed around the camera each frame
+const floaterHomes = [];   // home positions of camFloaters' instances
+const floaterPose = new THREE.Object3D();
+let camFloor = null, camGrid = null, camFloaters = null;
 
 function buildCamScene() {
-  camScene.clear();
-  camScene.fog = new THREE.Fog(0x030c12, 600, 2500);
+  camScene.fog = new THREE.Fog(0x030c12, 1200, CAM_FOG);
 
   // Checkerboard floor
   const cvs = document.createElement('canvas');
@@ -905,76 +1433,75 @@ function buildCamScene() {
     ctx.fillStyle = (i+j) % 2 === 0 ? '#081828' : '#040c14';
     ctx.fillRect(i*64, j*64, 64, 64);
   }
+  const floorSize = CAM_TILE * 1.25;
   const floorTex = new THREE.CanvasTexture(cvs);
   floorTex.wrapS = floorTex.wrapT = THREE.RepeatWrapping;
-  floorTex.repeat.set(16, 16);
-  const floor = new THREE.Mesh(
-    new THREE.PlaneGeometry(3000, 3000),
-    new THREE.MeshLambertMaterial({ map: floorTex })
+  floorTex.repeat.set(floorSize / FLOOR_SNAP, floorSize / FLOOR_SNAP);
+  floorTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  camFloor = new THREE.Mesh(
+    new THREE.PlaneGeometry(floorSize, floorSize),
+    new THREE.MeshLambertMaterial({ map: floorTex, side: THREE.DoubleSide })   // the camera can end up below it
   );
-  floor.rotation.x = -Math.PI / 2;
-  floor.position.y = -60;
-  camScene.add(floor);
+  camFloor.rotation.x = -Math.PI / 2;
+  camFloor.position.y = CAM_FLOOR;
+  camScene.add(camFloor);
 
   // Grid overlay
-  const floorGrid = new THREE.GridHelper(3000, 80, 0x0a2535, 0x061520);
-  floorGrid.position.y = -59;
-  camScene.add(floorGrid);
+  camGrid = new THREE.GridHelper(floorSize, floorSize / 250, 0x0a2535, 0x0a2535);
+  camGrid.position.y = CAM_FLOOR + 1;
+  camScene.add(camGrid);
 
-  // Landmark pillars
-  const pillarPositions = [
-    [300, 0, -400], [-300, 0, -400], [0, 0, -600],
-    [500, 0, -200], [-500, 0, -200],
-    [600, 0, 200], [-600, 0, 200],
-    [250, 0, 300], [-250, 0, 300],
-    [0, 0, 500],
-  ];
-  pillarPositions.forEach(([x, y, z]) => {
-    const h = 150 + Math.random() * 100;
-    const pillar = new THREE.Mesh(
-      new THREE.BoxGeometry(18, h, 18),
-      new THREE.MeshLambertMaterial({ color: 0x06141e, emissive: 0x00111a })
-    );
-    pillar.position.set(x, y + h/2 - 60, z);
-    camScene.add(pillar);
+  // Same layout every load
+  let seed = 7;
+  const rand = () => (seed = seed * 16807 % 2147483647) / 2147483647;
+  const spot = () => [(rand() - 0.5) * CAM_TILE, (rand() - 0.5) * CAM_TILE];
 
-    // Glowing cap
-    const cap = new THREE.Mesh(
-      new THREE.BoxGeometry(20, 6, 20),
-      new THREE.MeshBasicMaterial({ color: 0x00e5ff })
-    );
-    cap.position.set(x, y + h - 60 + 3, z);
-    camScene.add(cap);
+  // Landmark pillars, each with a glowing cap and a light beam
+  const box       = new THREE.BoxGeometry(1, 1, 1);
+  const beamGeo   = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 1, 0)]);
+  const pillarMat = new THREE.MeshLambertMaterial({ color: 0x06141e, emissive: 0x00111a });
+  const capMat    = new THREE.MeshBasicMaterial({ color: 0x00e5ff });
+  const beamMat   = new THREE.LineBasicMaterial({ color: 0x00e5ff, transparent: true, opacity: 0.15 });
+  for (let i = 0; i < 64; i++) {
+    const [x, z] = spot();
+    if (Math.abs(x) < 300 && Math.abs(z) < 300) continue;   // keep clear of the start
+    const h = 600 + rand() * 1000;
+    const group = new THREE.Group();
 
-    // Vertical light beam (line)
-    const beamGeo = new THREE.BufferGeometry().setFromPoints([
-      new THREE.Vector3(x, y + h - 60 + 6, z),
-      new THREE.Vector3(x, y + h + 200, z)
-    ]);
-    const beamLine = new THREE.Line(beamGeo,
-      new THREE.LineBasicMaterial({ color: 0x00e5ff, transparent: true, opacity: 0.15 })
-    );
-    camScene.add(beamLine);
-  });
+    const pillar = new THREE.Mesh(box, pillarMat);
+    pillar.scale.set(60, h, 60);
+    pillar.position.y = CAM_FLOOR + h / 2;
+    const cap = new THREE.Mesh(box, capMat);
+    cap.scale.set(70, 20, 70);
+    cap.position.y = CAM_FLOOR + h + 10;
+    const beam = new THREE.Line(beamGeo, beamMat);
+    beam.scale.y = 1000;
+    beam.position.y = CAM_FLOOR + h + 20;
+
+    group.add(pillar, cap, beam);
+    camScene.add(group);
+    camWrapped.push([group, x, 0, z]);
+  }
 
   // Horizontal ring structures
-  [[-400, 20, 0], [400, 20, 0], [0, 20, -500]].forEach(([x, y, z]) => {
-    const ring = new THREE.Mesh(
-      new THREE.TorusGeometry(40, 3, 8, 32),
-      new THREE.MeshBasicMaterial({ color: 0xff6d00, transparent: true, opacity: 0.5 })
-    );
-    ring.position.set(x, y, z);
+  const ringGeo = new THREE.TorusGeometry(150, 10, 8, 32);
+  const ringMat = new THREE.MeshBasicMaterial({ color: 0xff6d00, transparent: true, opacity: 0.5 });
+  for (let i = 0; i < 8; i++) {
+    const [x, z] = spot();
+    const ring = new THREE.Mesh(ringGeo, ringMat);
     ring.rotation.x = Math.PI / 2;
     camScene.add(ring);
-  });
+    camWrapped.push([ring, x, -100 + rand() * 500, z]);
+  }
 
-  // Distant horizon plane
-  const horizon = new THREE.Mesh(
-    new THREE.PlaneGeometry(6000, 400),
-    new THREE.MeshBasicMaterial({ color: 0x030c12, transparent: true, opacity: 0.8, side: THREE.FrontSide })
-  );
-  horizon.position.set(0, 50, -2000);
-  camScene.add(horizon);
+  // Floating markers through the whole volume, so there's depth to read in any direction
+  camFloaters = new THREE.InstancedMesh(new THREE.BoxGeometry(40, 40, 40), new THREE.MeshBasicMaterial({ color: 0x0f5566 }), 400);
+  camFloaters.frustumCulled = false;   // instances spread far from the mesh's own bounds
+  for (let i = 0; i < camFloaters.count; i++) {
+    const [x, z] = spot(), y = (rand() - 0.5) * CAM_TILE;
+    floaterHomes.push(Math.hypot(x, y, z) < 300 ? [x + 600, y, z] : [x, y, z]);
+  }
+  camScene.add(camFloaters);
 
   camScene.add(new THREE.AmbientLight(0x00e5ff, 0.2));
   const dl = new THREE.DirectionalLight(0xffffff, 0.7);
@@ -985,14 +1512,26 @@ function buildCamScene() {
   camScene.add(dl2);
 }
 
+// Moves each landmark to its copy nearest the camera, and the floor to the layer
+// nearest it. Copies swap at least CAM_FOG px away, where the fog hides them.
+function wrapCamWorld(at) {
+  const near = (home, c) => home + Math.round((c - home) / CAM_TILE) * CAM_TILE;
+  const layer = near(0, at.y - CAM_MID);
+  camWrapped.forEach(([obj, x, y, z]) => obj.position.set(near(x, at.x), y + layer, near(z, at.z)));
+  floaterHomes.forEach(([x, y, z], i) => {
+    floaterPose.position.set(near(x, at.x), near(y, at.y), near(z, at.z));
+    floaterPose.updateMatrix();
+    camFloaters.setMatrixAt(i, floaterPose.matrix);
+  });
+  camFloaters.instanceMatrix.needsUpdate = true;
+  const snap = c => Math.round(c / FLOOR_SNAP) * FLOOR_SNAP;
+  camFloor.position.set(snap(at.x), CAM_FLOOR + layer, snap(at.z));
+  camGrid.position.set(snap(at.x), CAM_FLOOR + 1 + layer, snap(at.z));
+}
+
 buildCamScene();
 
 // ─── PATH VISUALIZATION OBJECTS ────────────────────────────────────────────
-let pathLineObj    = null;
-let camFrustumObj  = null;
-let startMarkerObj = null;
-let trailObjs      = [];
-
 function makeFrustum() {
   const group = new THREE.Group();
 
@@ -1036,122 +1575,108 @@ function makeFrustum() {
   return group;
 }
 
-function updatePath3D() {
-  // Remove old objects
-  if (pathLineObj)   pathScene.remove(pathLineObj);
-  if (startMarkerObj) pathScene.remove(startMarkerObj);
-  trailObjs.forEach(o => pathScene.remove(o));
-  trailObjs = [];
-  pathLineObj = startMarkerObj = null;
+// Built once and updated in place, so recomputing and playback don't leak GPU buffers
+const pathLine    = new THREE.Line(new THREE.BufferGeometry(), new THREE.LineBasicMaterial({ vertexColors: true }));
+const tickGroup   = new THREE.Group();
+const tickGeo     = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, -4, 0), new THREE.Vector3(0, 4, 0)]);
+const tickMat     = new THREE.LineBasicMaterial({ color: 0x0a3040 });
+const markerGeo   = new THREE.SphereGeometry(6, 8, 8);
+const startMarker = new THREE.Mesh(markerGeo, new THREE.MeshBasicMaterial({ color: 0x39ff14 }));
+const endMarker   = new THREE.Mesh(markerGeo, new THREE.MeshBasicMaterial({ color: 0xff3a3a }));
+const frustum     = makeFrustum();
+pathLine.visible = false;
+pathScene.add(pathLine, tickGroup, startMarker, endMarker, frustum);
 
-  if (frames.length < 2) return;
-
-  // Gradient path line
-  const pts    = frames.map(f => f.pos);
-  const colors = [];
-  frames.forEach((f, i) => {
-    const t = i / (frames.length - 1);
-    // Cyan → Orange
-    colors.push(
-      t,              // R
-      0.9 - t * 0.7, // G
-      1 - t          // B
-    );
-  });
-  const lineGeo = new THREE.BufferGeometry().setFromPoints(pts);
-  lineGeo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-  pathLineObj = new THREE.Line(lineGeo, new THREE.LineBasicMaterial({ vertexColors: true }));
-  pathScene.add(pathLineObj);
-
-  // Tick marks along path
-  const step = Math.max(1, Math.floor(frames.length / 20));
-  frames.forEach((f, i) => {
-    if (i % step !== 0 && i !== frames.length - 1) return;
-    const tickGeo = new THREE.BufferGeometry().setFromPoints([
-      new THREE.Vector3(0, -4, 0),
-      new THREE.Vector3(0,  4, 0)
-    ]);
-    const tick = new THREE.Line(tickGeo, new THREE.LineBasicMaterial({ color: 0x0a3040 }));
-    tick.position.copy(f.pos);
-    tick.quaternion.copy(f.quat);
-    pathScene.add(tick);
-    trailObjs.push(tick);
-  });
-
-  // Start marker
-  startMarkerObj = new THREE.Mesh(
-    new THREE.SphereGeometry(6, 8, 8),
-    new THREE.MeshBasicMaterial({ color: 0x39ff14 })
-  );
-  startMarkerObj.position.copy(frames[0].pos);
-  pathScene.add(startMarkerObj);
-
-  // End marker
-  const endMarker = new THREE.Mesh(
-    new THREE.SphereGeometry(6, 8, 8),
-    new THREE.MeshBasicMaterial({ color: 0xff3a3a })
-  );
-  endMarker.position.copy(frames[frames.length - 1].pos);
-  pathScene.add(endMarker);
-  trailObjs.push(endMarker);
+// Frames the whole path and sizes the helpers to it
+function fitObserver() {
+  const box = new THREE.Box3();
+  frames.forEach(f => box.expandByPoint(f.pos));
+  box.getCenter(observer.target);
+  observer.distance = Math.max(box.getSize(new THREE.Vector3()).length() * 1.6, 360);
+  observer.scale = observer.distance / 360;
+  [refGroup, startMarker, endMarker, frustum].forEach(o => o.scale.setScalar(observer.scale));
+  pathCamera.near = observer.distance / 2000;
+  pathCamera.far  = observer.distance * 40;
+  pathCamera.updateProjectionMatrix();
 }
 
-function updateFrustumAtFrame(fi) {
-  if (camFrustumObj) pathScene.remove(camFrustumObj);
-  if (!frames.length) return;
-  const f = frames[Math.min(fi, frames.length - 1)];
-  camFrustumObj = makeFrustum();
-  camFrustumObj.position.copy(f.pos);
-  camFrustumObj.quaternion.copy(f.quat);
-  pathScene.add(camFrustumObj);
+function buildPath() {
+  const n = frames.length;
+
+  // Gradient path line, cyan → orange
+  const colors = [];
+  frames.forEach((f, i) => {
+    const k = i / (n - 1);
+    colors.push(k, 0.9 - k * 0.7, 1 - k);
+  });
+  pathLine.geometry.dispose();
+  pathLine.geometry = new THREE.BufferGeometry().setFromPoints(frames.map(f => f.pos));
+  pathLine.geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+  pathLine.visible = true;
+
+  // Tick marks along path, upright in the camera's frame
+  tickGroup.clear();
+  const step = Math.max(1, Math.floor(n / 20));
+  frames.forEach((f, i) => {
+    if (i % step !== 0 && i !== n - 1) return;
+    const tick = new THREE.Line(tickGeo, tickMat);
+    tick.position.copy(f.pos);
+    tick.quaternion.copy(f.quat);
+    tick.scale.setScalar(observer.scale);
+    tickGroup.add(tick);
+  });
+
+  startMarker.position.copy(frames[0].pos);
+  endMarker.position.copy(frames[n - 1].pos);
 }
 
 // ─── FRAME DISPLAY ─────────────────────────────────────────────────────────
+const euler = new THREE.Euler();
+
 function updateFrameDisplay(fi) {
   if (!frames.length) return;
   fi = Math.min(fi, frames.length - 1);
-  const f = frames[fi];
+  const f = frames[fi], raw = f.raw, q = f.quat;
+  const set = (id, text) => { $(id).textContent = text; };
+  const deg = rad => (rad * 180 / Math.PI).toFixed(1) + '°';
+  const pad = i => String(i).padStart(Math.max(3, String(frames.length - 1).length), '0');
 
-  // Panel readout
-  document.getElementById('r-tx').textContent   = f.raw.tx.toFixed(3);
-  document.getElementById('r-ty').textContent   = f.raw.ty.toFixed(3);
-  document.getElementById('r-tz').textContent   = f.raw.tz.toFixed(3);
-  const rq = f.raw.rqArr;
-  document.getElementById('r-qw').textContent   = (rq[0]||1).toFixed(4);
-  document.getElementById('r-qx').textContent   = (rq[1]||0).toFixed(4);
-  document.getElementById('r-qy').textContent   = (rq[2]||0).toFixed(4);
-  document.getElementById('r-qz').textContent   = (rq[3]||0).toFixed(4);
-  document.getElementById('r-px').textContent   = f.pos.x.toFixed(2);
-  document.getElementById('r-py').textContent   = f.pos.y.toFixed(2);
-  document.getElementById('r-pz').textContent   = f.pos.z.toFixed(2);
-  document.getElementById('r-pmag').textContent = f.pos.length().toFixed(2);
-  document.getElementById('r-ex').textContent   = (f.euler.x * 180 / Math.PI).toFixed(1) + '°';
-  document.getElementById('r-ey').textContent   = (f.euler.y * 180 / Math.PI).toFixed(1) + '°';
-  document.getElementById('r-ez').textContent   = (f.euler.z * 180 / Math.PI).toFixed(1) + '°';
+  // Panel readout. Positions are relative to the start camera; the angles
+  // share the sign of the rotate_3d component that drives them.
+  set('r-tx', raw.tx.toFixed(3));
+  set('r-ty', raw.ty.toFixed(3));
+  set('r-tz', raw.tz.toFixed(3));
+  set('r-qw', raw.q[0].toFixed(4));
+  set('r-qx', raw.q[1].toFixed(4));
+  set('r-qy', raw.q[2].toFixed(4));
+  set('r-qz', raw.q[3].toFixed(4));
+  set('r-px', f.pos.x.toFixed(2));
+  set('r-py', f.pos.y.toFixed(2));
+  set('r-pz', (-f.pos.z).toFixed(2));
+  set('r-pmag', f.pos.length().toFixed(2));
+  euler.setFromQuaternion(q, 'YXZ');
+  set('r-ex', deg(euler.x));
+  set('r-ey', deg(-euler.y));
+  set('r-ez', deg(euler.z));
 
   // Timeline
-  document.getElementById('timeline').value       = fi;
-  document.getElementById('frameCounter').textContent =
-    String(fi).padStart(3,'0') + ' / ' + totalFrames;
+  $('timeline').value = fi;
+  set('frameCounter', pad(fi) + ' / ' + frames.length);
 
   // HUD
-  document.getElementById('hud-frame').textContent = 'F:' + String(fi).padStart(3,'0');
-  const fps = parseInt(document.getElementById('fpsInput').value) || 24;
-  document.getElementById('hud-time').textContent  = 'T:' + (fi / fps).toFixed(2) + 's';
-  document.getElementById('hud-fps').textContent   = fps + ' FPS';
-  document.getElementById('hud-px').textContent    = f.pos.x.toFixed(1);
-  document.getElementById('hud-py').textContent    = f.pos.y.toFixed(1);
-  document.getElementById('hud-pz').textContent    = f.pos.z.toFixed(1);
-  const q = f.quat;
-  document.getElementById('hud-quat').textContent  =
-    `Q[${q.w.toFixed(2)},${q.x.toFixed(2)},${q.y.toFixed(2)},${q.z.toFixed(2)}]`;
+  set('hud-frame', 'F:' + pad(fi));
+  set('hud-time', 'T:' + f.t.toFixed(2) + 's');
+  set('hud-fps', fps + ' FPS');
+  set('hud-px', f.pos.x.toFixed(1));
+  set('hud-py', f.pos.y.toFixed(1));
+  set('hud-pz', (-f.pos.z).toFixed(1));
+  // Accumulated rotation, in rotate_3d's convention
+  set('hud-quat', `ΣQ[${q.w.toFixed(2)},${q.x.toFixed(2)},${(-q.y).toFixed(2)},${q.z.toFixed(2)}]`);
 
-  // Cam camera pose
   camCamera.position.copy(f.pos);
   camCamera.quaternion.copy(f.quat);
-
-  // Frustum in path view
-  updateFrustumAtFrame(fi);
+  frustum.position.copy(f.pos);
+  frustum.quaternion.copy(f.quat);
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1161,34 +1686,62 @@ let viewMode = 'path';
 
 function setView(mode) {
   viewMode = mode;
-  document.getElementById('btn-path').classList.toggle('active', mode === 'path');
-  document.getElementById('btn-cam').classList.toggle('active', mode === 'cam');
-  document.getElementById('hud-viewlabel').textContent = mode === 'path' ? 'OBSERVER VIEW' : 'CAMERA VIEW';
-  document.getElementById('crosshair').style.display = mode === 'cam' ? 'block' : 'none';
+  $('btn-path').classList.toggle('active', mode === 'path');
+  $('btn-cam').classList.toggle('active', mode === 'cam');
+  $('hud-viewlabel').textContent = mode === 'path' ? 'OBSERVER VIEW' : 'CAMERA VIEW';
+  $('hud-hint').hidden = mode !== 'path';
+  $('crosshair').style.display = mode === 'cam' ? 'block' : 'none';
+  canvas.classList.toggle('orbit', mode === 'path');
 }
+
+canvas.addEventListener('pointerdown', e => {
+  if (viewMode !== 'path') return;
+  observer.drag = { x: e.clientX, y: e.clientY };
+  canvas.setPointerCapture(e.pointerId);
+});
+canvas.addEventListener('pointermove', e => {
+  if (!observer.drag) return;
+  observer.angle -= (e.clientX - observer.drag.x) * 0.006;
+  observer.pitch = Math.min(1.45, Math.max(-1.45, observer.pitch + (e.clientY - observer.drag.y) * 0.006));
+  observer.drag = { x: e.clientX, y: e.clientY };
+});
+['pointerup', 'pointercancel'].forEach(type => canvas.addEventListener(type, () => { observer.drag = null; }));
+canvas.addEventListener('wheel', e => {
+  if (viewMode !== 'path') return;
+  e.preventDefault();
+  observer.zoom = Math.min(20, Math.max(0.05, observer.zoom * Math.exp(e.deltaY * 0.001)));
+}, { passive: false });
+canvas.addEventListener('dblclick', () => {
+  observer.zoom = 1;
+  observer.pitch = 0.5;
+});
 
 // ═══════════════════════════════════════════════════════════
 //  PLAYBACK
 // ═══════════════════════════════════════════════════════════
 let playing = false;
 let looping = true;
-let currentFrame = 0;
 let accumTime = 0;
 let lastTimestamp = 0;
 
+function setPlaying(on) {
+  playing = on;
+  $('playBtn').textContent = on ? '■ STOP' : '▶ PLAY';
+  $('playBtn').classList.toggle('active', on);
+}
+
 function togglePlay() {
-  playing = !playing;
-  document.getElementById('playBtn').textContent = playing ? '■ STOP' : '▶ PLAY';
-  document.getElementById('playBtn').classList.toggle('active', playing);
+  if (!playing && !looping && currentFrame >= frames.length - 1) seekTo(0);   // replay from the start
+  setPlaying(!playing);
 }
 
 function toggleLoop() {
   looping = !looping;
-  document.getElementById('loopBtn').classList.toggle('active', looping);
+  $('loopBtn').classList.toggle('active', looping);
 }
 
 function seekTo(fi) {
-  currentFrame = parseInt(fi);
+  currentFrame = Math.min(Math.max(parseInt(fi) || 0, 0), Math.max(frames.length - 1, 0));
   accumTime = 0;
   updateFrameDisplay(currentFrame);
 }
@@ -1197,16 +1750,17 @@ function seekTo(fi) {
 //  RESIZE
 // ═══════════════════════════════════════════════════════════
 function onResize() {
-  const vp = document.getElementById('viewport');
+  const vp = $('viewport');
   const w = vp.clientWidth, h = vp.clientHeight;
-  renderer.setSize(w, h);
+  if (!w || !h) return;
+  renderer.setSize(w, h, false);
   const asp = w / h;
   pathCamera.aspect = asp;
   pathCamera.updateProjectionMatrix();
   camCamera.aspect = asp;
   camCamera.updateProjectionMatrix();
 }
-window.addEventListener('resize', onResize);
+new ResizeObserver(onResize).observe($('viewport'));
 
 // ═══════════════════════════════════════════════════════════
 //  RENDER LOOP
@@ -1214,36 +1768,42 @@ window.addEventListener('resize', onResize);
 function animate(ts) {
   requestAnimationFrame(animate);
 
-  const dt = Math.min(ts - lastTimestamp, 100);
+  const dt = Math.max(0, Math.min(ts - lastTimestamp, 100));
   lastTimestamp = ts;
 
   // Playback
   if (playing && frames.length > 0) {
-    const fps = parseInt(document.getElementById('fpsInput').value) || 24;
     accumTime += dt;
     const frameMs = 1000 / fps;
-    if (accumTime >= frameMs) {
-      accumTime -= frameMs;
-      currentFrame++;
-      if (currentFrame >= totalFrames) {
-        if (looping) { currentFrame = 0; }
-        else { currentFrame = totalFrames - 1; playing = false; document.getElementById('playBtn').textContent = '▶ PLAY'; }
+    const steps = Math.floor(accumTime / frameMs);
+    if (steps) {
+      accumTime -= steps * frameMs;
+      let next = currentFrame + steps;
+      if (next >= frames.length) {
+        if (looping) next %= frames.length;
+        else { next = frames.length - 1; setPlaying(false); }
       }
+      currentFrame = next;
       updateFrameDisplay(currentFrame);
     }
   }
 
   // Observer camera orbit
-  observerAngle += 0.0004;
-  pathCamera.position.x = observerTarget.x + Math.sin(observerAngle) * observerDistance;
-  pathCamera.position.z = observerTarget.z + Math.cos(observerAngle) * observerDistance;
-  pathCamera.position.y = observerTarget.y + observerDistance * 0.55;
-  pathCamera.lookAt(observerTarget);
+  if (!observer.drag) observer.angle += dt * 0.000024;
+  const d = observer.distance * observer.zoom;
+  const c = Math.cos(observer.pitch);
+  pathCamera.position.set(
+    observer.target.x + Math.sin(observer.angle) * c * d,
+    observer.target.y + Math.sin(observer.pitch) * d,
+    observer.target.z + Math.cos(observer.angle) * c * d
+  );
+  pathCamera.lookAt(observer.target);
 
   // Render
   if (viewMode === 'path') {
     renderer.render(pathScene, pathCamera);
   } else {
+    wrapCamWorld(camCamera.position);
     renderer.render(camScene, camCamera);
   }
 }
@@ -1251,21 +1811,72 @@ function animate(ts) {
 // ═══════════════════════════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════════════════════════
+// The browser may restore edited fields on reload; don't label them with a preset they no longer match
+const restored = PRESETS[$('presetSelect').value];
+if (restored && FIELDS.some(id => $(id).value !== restored[id])) $('presetSelect').value = '';
+
 onResize();
-computeFrames();
 setView('path');
-animate(0);
+computeFrames();
+requestAnimationFrame(animate);
 
 // Live recompute on input (debounced 400ms)
 let debTimer = null;
-['tx','ty','tz','rq','totalFrames'].forEach(id => {
-  document.getElementById(id).addEventListener('input', () => {
-    clearTimeout(debTimer);
-    debTimer = setTimeout(recompute, 400);
-  });
+const scheduleRecompute = () => {
+  clearTimeout(debTimer);
+  debTimer = setTimeout(computeFrames, 400);
+};
+FIELDS.forEach(id => $(id).addEventListener('input', () => {
+  $('presetSelect').value = '';
+  scheduleRecompute();
+}));
+Object.keys(NUMBER_INPUTS).forEach(id => {
+  $(id).addEventListener('input', scheduleRecompute);
+  $(id).addEventListener('change', () => { readNumber(id, true); computeFrames(); });
 });
-document.getElementById('fpsInput').addEventListener('input', () => {
-  updateFrameDisplay(currentFrame);
+
+// Import: the paste box, a pasted preset anywhere, or a dropped file
+let importTimer = null;
+$('importText').addEventListener('input', () => {
+  clearTimeout(importTimer);
+  importTimer = setTimeout(() => {
+    if ($('importText').value.trim()) importConfig($('importText').value);
+  }, 300);
+});
+document.addEventListener('paste', e => {
+  if (e.target === $('importText')) return;
+  const text = e.clipboardData.getData('text');
+  const editing = e.target.closest('input, textarea');
+  // A whole preset pasted into one field is meant for all of them
+  if (looksLikeConfig(text) && (!editing || text.includes('\n'))) {
+    e.preventDefault();
+    importConfig(text);
+  }
+});
+let dragDepth = 0;
+window.addEventListener('dragenter', e => {
+  if (!e.dataTransfer.types.includes('Files')) return;
+  dragDepth++;
+  $('dropHint').hidden = false;
+});
+window.addEventListener('dragleave', () => {
+  if (dragDepth && --dragDepth === 0) $('dropHint').hidden = true;
+});
+window.addEventListener('dragover', e => e.preventDefault());
+window.addEventListener('drop', async e => {
+  e.preventDefault();
+  dragDepth = 0;
+  $('dropHint').hidden = true;
+  const file = e.dataTransfer.files[0];
+  if (file) importConfig(await file.text());
+});
+
+// Space plays and stops, arrows step, unless a control has focus
+document.addEventListener('keydown', e => {
+  if (e.target.closest('input, textarea, select, button')) return;
+  if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
+  else if (e.key === 'ArrowRight') { e.preventDefault(); seekTo(currentFrame + 1); }
+  else if (e.key === 'ArrowLeft')  { e.preventDefault(); seekTo(currentFrame - 1); }
 });
 </script>
 </body>
